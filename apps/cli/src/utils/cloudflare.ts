@@ -1,9 +1,9 @@
-import { type ExtendedResolvedCommand, getCommand } from "@antfu/ni";
-import { z } from "zod";
-import { $, ProcessOutput } from "zx";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { type ExtendedResolvedCommand, getCommand } from "@antfu/ni";
+import { z } from "zod";
+import { $, ProcessOutput } from "zx";
 import type { D1Database, R2Bucket } from "../types";
 import { cliContext } from "./context";
 
@@ -12,7 +12,7 @@ $.verbose = false;
 // Configure zx for PowerShell/cmd on Windows
 if (!$.quote) {
 	$.quote = (arg: string) => {
-		if (/^[a-zA-Z0-9_:.\/\\-]+$/.test(arg)) {
+		if (/^[a-zA-Z0-9_:./-]+$/.test(arg)) {
 			return arg;
 		}
 		return `"${arg.replace(/"/g, '\\"')}"`;
@@ -60,7 +60,6 @@ export const getLocalAccountId = async () => {
 		if (error instanceof ProcessOutput) {
 			throw new Error(error.stderr || error.stdout);
 		}
-
 		throw error;
 	}
 };
@@ -100,7 +99,6 @@ export const listD1Databases = async () => {
 		if (error instanceof ProcessOutput) {
 			throw new Error(error.stderr || error.stdout);
 		}
-
 		throw error;
 	}
 };
@@ -131,7 +129,6 @@ export const listR2Buckets = async () => {
 		if (error instanceof ProcessOutput) {
 			throw new Error(error.stderr || error.stdout);
 		}
-
 		throw error;
 	}
 };
@@ -146,7 +143,6 @@ export const createR2Bucket = async (name: string) => {
 		const match = result.stdout.match(/\{(?:[^{}]*|\{(?:[^{}]*|\{[^{}]*\})*\})*\}/gim);
 
 		const parsedR2Binding = createR2BucketOutputSchema.safeParse(JSON.parse(match?.[0] ?? ""));
-
 		if (!parsedR2Binding.success) {
 			throw new Error("Could not properly retrieve R2 bucket binding");
 		}
@@ -156,7 +152,6 @@ export const createR2Bucket = async (name: string) => {
 		if (error instanceof ProcessOutput) {
 			throw new Error(error.stderr || error.stdout);
 		}
-
 		throw error;
 	}
 };
@@ -180,33 +175,33 @@ export const createD1Database = async (name: string) => {
 		if (error instanceof ProcessOutput) {
 			throw new Error(error.stderr || error.stdout);
 		}
-
 		throw error;
 	}
 };
 
-export const applyD1Migrations = async (d1DatabaseName: string, config: { cwd?: string } = {}) => {
+export const applyD1Migrations = async (d1DatabaseName: string, config: { cwd?: string; local?: boolean } = {}) => {
 	const packageManager = cliContext.getStore()?.packageManagerAgent ?? "npm";
+	const { cwd, local = false } = config;
 
 	try {
-		const command = getCommand(packageManager, "execute", [
+		const args = [
 			"-y",
 			"wrangler",
 			"d1",
 			"migrations",
 			"apply",
 			d1DatabaseName,
-			"--remote",
+			local ? "--local" : "--remote",
 			"--config",
 			"wrangler.json"
-		]);
+		];
 
-		await executeCommand(command, { cwd: config.cwd });
+		const command = getCommand(packageManager, "execute", args);
+		await executeCommand(command, { cwd });
 	} catch (error) {
 		if (error instanceof ProcessOutput) {
 			throw new Error(error.stderr || error.stdout);
 		}
-
 		throw error;
 	}
 };

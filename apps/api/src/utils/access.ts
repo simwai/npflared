@@ -20,6 +20,11 @@ export const assertTokenAccess = (token: typeof tokenTable.$inferSelect | undefi
 			})
 			.flatMap(({ values }) => values);
 
-		return targetedScopesValue.some((value) => value === "*" || value === targetedPackage || micromatch.isMatch(targetedPackage, value, { dot: true, bash: true }));
+		return targetedScopesValue.some(
+			(value) =>
+				value === "*" ||
+				value === targetedPackage ||
+				micromatch.isMatch(targetedPackage, value, { dot: true, bash: true })
+		);
 	};
 };
