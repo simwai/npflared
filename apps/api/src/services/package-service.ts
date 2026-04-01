@@ -57,7 +57,7 @@ export const packageService = {
 			throw HttpError.badRequest("No attachment");
 		}
 
-		const scopedSafeName = packageName.replace("/", "-"); // ← only change
+		const scopedSafeName = packageName.replace("@", "").replace("/", "-");
 		const expectedAttachmentName = `${scopedSafeName}-${versionToUpload}.tgz`;
 
 		if (attachmentName !== expectedAttachmentName) {
