@@ -1,0 +1,49 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "API dev",
+      "type": "shell",
+      "command": "pnpx wrangler dev ./src/index.ts --local --port=8788 --inspector-port=9229",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/api"
+      },
+      "presentation": {
+        "group": "dev",
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "wrangler",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": {
+            "regexp": "Starting local server"
+          },
+          "endsPattern": {
+            "regexp": "Ready on"
+          }
+        }
+      }
+    },
+    {
+      "label": "CLI test",
+      "type": "shell",
+      "command": "pnpx tsx ./src/index.ts test --local --port 8788",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/cli"
+      },
+      "presentation": {
+        "group": "dev",
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "dependsOn": "API dev",
+      "dependsOrder": "sequence"
+    }
+  ]
+}

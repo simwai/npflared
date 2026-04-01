@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { resolve } from "node:path";
 import { intro, isCancel, log, outro, select, spinner, text } from "@clack/prompts";
 import chalk from "chalk";
 import { encode as encodeBase32 } from "uuid-b32";
@@ -6,9 +7,10 @@ import type { Argv, CommandModule } from "yargs";
 import { executeD1, getLocalAccountId } from "../utils/cloudflare";
 import { cliContext } from "../utils/context";
 
+const apiCwd = resolve(import.meta.dirname, "../../../api");
 const cliSpinner = spinner();
 
-type TokenScopeType = "package:read" | "package:write" | "package:read+write";
+export type TokenScopeType = "package:read" | "package:write" | "package:read+write";
 
 type CreateTokenArgs = {
 	package?: string;
@@ -88,7 +90,11 @@ const ensureCloudflareAccount = async (): Promise<string> => {
 
 	if (!accountId) {
 		log.error(
-			chalk.red(`Could not retrieve Cloudflare account id, please login with ${chalk.bold.white("wrangler login")}.`)
+			chalk.red(
+				`Could not retrieve Cloudflare account id, please login with ${chalk.bold.white(
+					"wrangler login"
+				)}.`
+			)
 		);
 		process.exit(1);
 	}
@@ -105,19 +111,23 @@ const buildScopesJson = (scopeType: TokenScopeType, pkgName: string): string =>
 		}
 	]);
 
-const createToken = async (args: CreateTokenArgs) => {
-	intro(`npflared token add (${args.local ? "local" : "remote"})`);
+/**
+ * Programmatic helper: creates a token row in D1 and returns the token string.
+ * Used by the CLI test command to mint a short‑lived test token.
+ */
+export const createTokenProgrammatically = async (options: {
+	pkgName: string;
+	scopeType: TokenScopeType;
+	tokenLabel: string;
+	local: boolean;
+}): Promise<string> => {
+	if (!options.local) await ensureCloudflareAccount()
 
-	// Even for local, this also sanity-checks Wrangler auth
-	await ensureCloudflareAccount();
-
-	const packageName = args.package ?? (await promptPackageName());
-	const scopeType = args.mode ?? (await promptScopeMode());
-	const tokenLabel = args.name ?? (await promptTokenName(packageName));
+	const { pkgName, scopeType, tokenLabel, local } = options;
 
 	const rawToken = randomUUID();
 	const tokenValue = encodeBase32(rawToken).toLowerCase();
-	const scopesJson = buildScopesJson(scopeType, packageName).replace(/'/g, "''");
+	const scopesJson = buildScopesJson(scopeType, pkgName).replace(/'/g, "''");
 	const nowSql = "strftime('%s','now')";
 
 	const sql = `
@@ -125,24 +135,43 @@ const createToken = async (args: CreateTokenArgs) => {
     VALUES ('${tokenValue}', '${tokenLabel.replace(/'/g, "''")}', '${scopesJson}', ${nowSql}, ${nowSql});
   `;
 
-	cliSpinner.start(`Creating token in ${args.local ? "local" : "remote"} D1...`);
-	await executeD1(sql, { local: args.local });
-	cliSpinner.stop("Token created.");
+	await executeD1(sql, { local, cwd: apiCwd });
+
+	return tokenValue;
+};
+
+const createToken = async (args: CreateTokenArgs) => {
+	intro(`npflared token add (${args.local ? "local" : "remote"})`);
+
+	await ensureCloudflareAccount();
+
+	const packageName = args.package ?? (await promptPackageName());
+	const scopeType = args.mode ?? (await promptScopeMode());
+	const tokenLabel = args.name ?? (await promptTokenName(packageName));
+
+	const tokenValue = await createTokenProgrammatically({
+		pkgName: packageName,
+		scopeType,
+		tokenLabel,
+		local: args.local
+	});
 
 	log.info(
-		chalk.green([
-			"",
-			chalk.bold("New token created:"),
-			`  Token:   ${chalk.bold.white(tokenValue)}`,
-			`  Package: ${chalk.bold.white(packageName)}`,
-			`  Mode:    ${chalk.bold.white(scopeType)}`,
-			`  Target:  ${chalk.bold.white(args.local ? "local D1 (wrangler dev)" : "remote D1")}`,
-			"",
-			"Use it in .npmrc like:",
-			`  @babadeluxe:registry=https://your-npflared-url`,
-			`  //your-npflared-url/:_authToken=${tokenValue}`,
-			""
-		].join("\n"))
+		chalk.green(
+			[
+				"",
+				chalk.bold("New token created:"),
+				`  Token:   ${chalk.bold.white(tokenValue)}`,
+				`  Package: ${chalk.bold.white(packageName)}`,
+				`  Mode:    ${chalk.bold.white(scopeType)}`,
+				`  Target:  ${chalk.bold.white(args.local ? "local D1 (wrangler dev)" : "remote D1")}`,
+				"",
+				"Use it in .npmrc like:",
+				`  @babadeluxe:registry=https://your-npflared-url`,
+				`  //your-npflared-url/:_authToken=${tokenValue}`,
+				""
+			].join("\n")
+		)
 	);
 
 	outro("Done.");
@@ -161,8 +190,10 @@ const clearTokensForPackage = async (args: ClearTokensArgs) => {
     WHERE json_extract(scopes, '$[*].values') LIKE '%${escapedPkg}%';
   `;
 
-	cliSpinner.start(`Deleting all tokens for package ${packageName} (${args.local ? "local" : "remote"})...`);
-	await executeD1(sql, { local: args.local });
+	cliSpinner.start(
+		`Deleting all tokens for package ${packageName} (${args.local ? "local" : "remote"})...`
+	);
+	await executeD1(sql, { local: args.local, cwd: apiCwd });
 	cliSpinner.stop("Tokens deleted.");
 
 	outro("Done.");
@@ -199,7 +230,7 @@ const removeTokenByValue = async (args: RemoveTokenArgs) => {
   `;
 
 	cliSpinner.start(`Deleting token ${tokenValue} (${args.local ? "local" : "remote"})...`);
-	await executeD1(sql, { local: args.local });
+	await executeD1(sql, { local: args.local, cwd: apiCwd });
 	cliSpinner.stop("Token deleted.");
 
 	outro("Done.");
@@ -237,17 +268,14 @@ export const tokenCommands: CommandModule = {
 							describe: "Operate on local D1 instead of remote (for wrangler dev)"
 						}),
 				async (argv) => {
-					await cliContext.run(
-						{ packageManagerAgent: "npm" },
-						async () => {
-							await createToken({
-								package: argv.package as string | undefined,
-								mode: argv.mode as TokenScopeType | undefined,
-								name: argv.name as string | undefined,
-								local: Boolean(argv.local)
-							});
-						}
-					);
+					await cliContext.run({ packageManagerAgent: "npm" }, async () => {
+						await createToken({
+							package: argv.package as string | undefined,
+							mode: argv.mode as TokenScopeType | undefined,
+							name: argv.name as string | undefined,
+							local: Boolean(argv.local)
+						});
+					});
 				}
 			)
 			.command(
@@ -267,15 +295,12 @@ export const tokenCommands: CommandModule = {
 							describe: "Operate on local D1 instead of remote (for wrangler dev)"
 						}),
 				async (argv) => {
-					await cliContext.run(
-						{ packageManagerAgent: "npm" },
-						async () => {
-							await clearTokensForPackage({
-								package: argv.package as string | undefined,
-								local: Boolean(argv.local)
-							});
-						}
-					);
+					await cliContext.run({ packageManagerAgent: "npm" }, async () => {
+						await clearTokensForPackage({
+							package: argv.package as string | undefined,
+							local: Boolean(argv.local)
+						});
+					});
 				}
 			)
 			.command(
@@ -295,15 +320,12 @@ export const tokenCommands: CommandModule = {
 							describe: "Operate on local D1 instead of remote (for wrangler dev)"
 						}),
 				async (argv) => {
-					await cliContext.run(
-						{ packageManagerAgent: "npm" },
-						async () => {
-							await removeTokenByValue({
-								token: argv.token as string | undefined,
-								local: Boolean(argv.local)
-							});
-						}
-					);
+					await cliContext.run({ packageManagerAgent: "npm" }, async () => {
+						await removeTokenByValue({
+							token: argv.token as string | undefined,
+							local: Boolean(argv.local)
+						});
+					});
 				}
 			)
 			.demandCommand(1),

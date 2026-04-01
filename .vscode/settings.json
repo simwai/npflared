@@ -26,6 +26,12 @@
 	// 	"source.organizeImports.biome": "explicit"
 	// },
 	"editor.formatOnSave": true,
+	"debug.javascript.autoAttachSmartPattern": [
+		"${workspaceFolder}/**",
+		"!**/node_modules/**",
+		"**/$KNOWN_TOOLS$/**",
+		"./src/**/*"
+	],
 	"editor.defaultFormatter": "fronterior.biome-monorepo",
 	"editor.codeActionsOnSave": {
 		"source.fixAll.biome": "explicit",
@@ -33,5 +39,6 @@
 	},
 	"cSpell.words": [
 		"npflared"
-	]
+	],
+	"js/ts.tsdk.path": "node_modules\\typescript\\lib"
 }

@@ -2,29 +2,38 @@ import { rmSync } from "node:fs";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { isCancel, log, password, spinner, text } from "@clack/prompts";
+import { isCancel, log, spinner, text } from "@clack/prompts";
 import chalk from "chalk";
 import dedent from "dedent";
 import { $ } from "zx";
+import { createTokenProgrammatically, type TokenScopeType } from "./token";
 
 const cliSpinner = spinner();
 
-export const test = async () => {
-	const adminToken = await password({
-		message: "Enter your admin token (from npflared install output):"
-	});
-	if (isCancel(adminToken)) process.exit(1);
+type TestOptions = {
+	local?: boolean;
+	port?: number;
+};
 
-	const deployedUrl = await text({
-		message: "Enter your deployed worker URL (from npflared install output):",
-		validate(value) {
-			const v = value ?? "";
-			if (!v.startsWith("http")) {
-				return "Please enter a valid URL starting with http:// or https://";
+export const test = async ({ local = false, port = 8787 }: TestOptions = {}) => {
+	let deployedUrl: string;
+
+	if (local) {
+		deployedUrl = `http://127.0.0.1:${port}`;
+		log.info(`Using local dev registry at ${deployedUrl}`);
+	} else {
+		const urlInput = await text({
+			message: "Enter your deployed worker URL (from npflared install output):",
+			validate(value) {
+				const v = value ?? "";
+				if (!v.startsWith("http")) {
+					return "Please enter a valid URL starting with http:// or https://";
+				}
 			}
-		}
-	});
-	if (isCancel(deployedUrl)) process.exit(1);
+		});
+		if (isCancel(urlInput)) process.exit(1);
+		deployedUrl = urlInput;
+	}
 
 	const testScope = await text({
 		message: "Enter test scope (default: @npflared-test):",
@@ -42,69 +51,150 @@ export const test = async () => {
 	const installTmpDir = await mkdtemp(join(tmpdir(), "npflared-install-"));
 
 	const cleanup = () => {
-		if (publishTmpDir) rmSync(publishTmpDir, { recursive: true, force: true });
-		if (installTmpDir) rmSync(installTmpDir, { recursive: true, force: true });
+		try {
+			rmSync(publishTmpDir, { recursive: true, force: true });
+		} catch {}
+		try {
+			rmSync(installTmpDir, { recursive: true, force: true });
+		} catch {}
 	};
 
-	process.on("exit", cleanup);
-	process.on("SIGINT", cleanup);
-	process.on("SIGTERM", cleanup);
+	// 1. Create test package
+	await $({ cwd: publishTmpDir })`pnpm init --bare`;
 
+	const pkgJsonPath = join(publishTmpDir, "package.json");
+	const pkg = JSON.parse(
+		await readFile(pkgJsonPath, "utf-8")
+	) as {
+		name?: string;
+		version?: string;
+		publishConfig?: { access: string; registry: string };
+	};
+
+	if (!pkg.name || typeof pkg.name !== "string") {
+		pkg.name = `${testScope}/test-package`;
+	}
+
+	// Generate a unique version for each test run
+	const uniqueVersion = `0.0.0-test-${Date.now()}-${Math.random()
+		.toString(36)
+		.slice(2, 8)}`;
+	pkg.version = uniqueVersion;
+
+	const bareName = pkg.name.replace(/^@[^/]+\//, "");
+	pkg.name = `${testScope}/${bareName}`;
+
+	pkg.publishConfig = {
+		access: "public",
+		registry: deployedUrl
+	};
+
+	// Log the package we are going to publish
+	log.info(
+		chalk.cyan(
+			`Test package:\n  name: ${pkg.name}\n  version: ${pkg.version}\n  registry: ${pkg.publishConfig.registry}`
+		)
+	);
+
+	await writeFile(pkgJsonPath, JSON.stringify(pkg, null, 2), "utf-8");
+
+	await $({ cwd: publishTmpDir })`node -e "require('fs').writeFileSync('index.js','// index.js')"`;
+
+	// 2. Mint a short-lived test token scoped to this package (read+write)
+	const scopeType: TokenScopeType = "package:read+write";
+	const tokenLabel = `cli-test-${pkg.name}`;
+	log.info("Minting test token...");
+	const testToken = await createTokenProgrammatically({
+		pkgName: pkg.name,
+		scopeType,
+		tokenLabel,
+		local
+	});
+
+	// 3. Configure .npmrc for PUBLISH dir
+	const url = new URL(deployedUrl);
+	const registryHost = url.host;
+	const registryBase = deployedUrl.replace(/\/$/, "");
+
+	const publishNpmrc = [
+		`${testScope}:registry=${registryBase}`,
+		`//${registryHost}/:_authToken=${testToken}`,
+		""
+	].join("\n");
+
+	await writeFile(join(publishTmpDir, ".npmrc"), publishNpmrc, "utf-8");
+
+	log.info(
+		chalk.gray(
+			`Publish .npmrc:\n${publishNpmrc
+				.split("\n")
+				.map((l) => `  ${l}`)
+				.join("\n")}`
+		)
+	);
+
+	// 4. Publish
+	cliSpinner.start("Publishing test package...");
 	try {
-		process.chdir(publishTmpDir);
-		await $`pnpm init --scope=${testScope} -y`;
-		await $`echo "// index.js" > index.js`;
+		await $({ quiet: true, cwd: publishTmpDir })`pnpm publish --access public`;
+		cliSpinner.stop("Successfully published test package");
+	} catch (publishErr) {
+		cliSpinner.stop(chalk.red(`Failed to publish: ${publishErr}`));
+		throw publishErr;
+	}
 
-		const registryHost = new URL(deployedUrl).hostname;
-		await writeFile(
-			join(publishTmpDir, ".npmrc"),
-			`//${registryHost}/:_authToken=${adminToken}\nregistry=${deployedUrl}\n`
-		);
+	// 5. Prepare INSTALL dir & .npmrc
+	await $({ cwd: installTmpDir })`pnpm init --bare`;
 
-		cliSpinner.start("Publishing test package...");
-		try {
-			await $({
-				quiet: true,
-				cwd: publishTmpDir
-			})`pnpm publish --access public`;
-			cliSpinner.stop("Successfully published test package");
-		} catch (publishErr) {
-			cliSpinner.stop(chalk.red(`Failed to publish: ${publishErr}`));
-			throw publishErr;
-		}
+	const installNpmrc = [
+		`${testScope}:registry=${registryBase}`,
+		`//${registryHost}/:_authToken=${testToken}`,
+		""
+	].join("\n");
 
-		process.chdir(installTmpDir);
-		await $`pnpm init -y`;
+	await writeFile(join(installTmpDir, ".npmrc"), installNpmrc, "utf-8");
 
-		const { version } = JSON.parse(await readFile(join(publishTmpDir, "package.json"), "utf-8"));
+	log.info(
+		chalk.gray(
+			`Install .npmrc:\n${installNpmrc
+				.split("\n")
+				.map((l) => `  ${l}`)
+				.join("\n")}`
+		)
+	);
 
-		cliSpinner.start("Installing test package...");
-		try {
-			await $({
-				quiet: true,
-				cwd: installTmpDir
-			})`pnpm add ${testScope}@${version}`;
-			cliSpinner.stop("Successfully installed test package");
-		} catch (installErr) {
-			cliSpinner.stop(chalk.red(`Failed to install: ${installErr}`));
-			throw installErr;
-		}
+	// 6. Install
+	cliSpinner.start("Installing test package...");
+	try {
+		const { name, version } = JSON.parse(
+			await readFile(pkgJsonPath, "utf-8")
+		) as { name: string; version: string };
 
+		// Log the exact spec pnpm will install
 		log.info(
-			chalk.green(
-				dedent`
-          ✅ Test passed!
-          📦 Published and installed test package successfully using:
-            - Admin token: ${chalk.bold.white(adminToken.slice(0, 8)) + "..."}
-            - Worker URL: ${chalk.bold.white(deployedUrl)}
-            - Test scope: ${chalk.bold.white(testScope)}
-        `
+			chalk.cyan(
+				`Installing package:\n  spec: ${name}@${version}\n  from: ${registryBase}`
 			)
 		);
-	} catch (error) {
-		log.error(`${error}`);
-		process.exit(1);
-	} finally {
-		cleanup();
+
+		await $({ quiet: true, cwd: installTmpDir })`pnpm add ${name}@${version}`;
+		cliSpinner.stop("Successfully installed test package");
+	} catch (installErr) {
+		cliSpinner.stop(chalk.red(`Failed to install: ${installErr}`));
+		throw installErr;
 	}
+
+	log.info(
+		chalk.green(
+			dedent`
+          ✅ Test passed!
+          📦 Published and installed test package successfully using:
+            - Minted test token: ${chalk.bold.white(`${testToken.slice(0, 8)}...`)}
+            - Worker URL: ${chalk.bold.white(deployedUrl)}${local ? " (local)" : ""}
+            - Test scope: ${chalk.bold.white(testScope)}
+        `
+		)
+	);
+
+	cleanup();
 };

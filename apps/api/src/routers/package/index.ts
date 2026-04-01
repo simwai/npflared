@@ -12,7 +12,7 @@ export const packageRouter = $.createApp()
 	.get(
 		"/:packageName",
 		describeRoute({
-			description: "Get a package by it's name from the registry or the fallback registry",
+			description: "Get a package from the registry or fallback registry",
 			responses: {
 				...standardOpenApiErrorResponses,
 				200: {
@@ -34,17 +34,14 @@ export const packageRouter = $.createApp()
 
 			if (!publishedPackage) {
 				if (env.FALLBACK_REGISTRY_ENDPOINT) {
-					const fallbackRegistryURL = new URL(env.FALLBACK_REGISTRY_ENDPOINT);
-					fallbackRegistryURL.pathname = `/${packageName}`;
-					return fetch(fallbackRegistryURL);
+					const fallbackURL = new URL(env.FALLBACK_REGISTRY_ENDPOINT);
+					fallbackURL.pathname = `/${packageName}`;
+					return fetch(fallbackURL);
 				}
-
 				throw HttpError.notFound();
 			}
 
-			if (!can("read", "package", packageName)) {
-				throw HttpError.forbidden();
-			}
+			if (!can("read", "package", packageName)) throw HttpError.forbidden();
 
 			return c.json(publishedPackage);
 		}
@@ -52,7 +49,7 @@ export const packageRouter = $.createApp()
 	.get(
 		"/:packageScope/:packageName",
 		describeRoute({
-			description: "Get a scoped package by it's name from the registry or the fallback registry",
+			description: "Get a scoped package from the registry or fallback registry",
 			responses: {
 				...standardOpenApiErrorResponses,
 				200: {
@@ -75,29 +72,42 @@ export const packageRouter = $.createApp()
 
 			if (!publishedPackage) {
 				if (env.FALLBACK_REGISTRY_ENDPOINT) {
-					const fallbackRegistryURL = new URL(env.FALLBACK_REGISTRY_ENDPOINT);
-					fallbackRegistryURL.pathname = `/${fullName}`;
-					return fetch(fallbackRegistryURL);
+					const fallbackURL = new URL(env.FALLBACK_REGISTRY_ENDPOINT);
+					fallbackURL.pathname = `/${fullName}`;
+					return fetch(fallbackURL);
 				}
-
 				throw HttpError.notFound();
 			}
 
-			if (!can("read", "package", fullName)) {
-				throw HttpError.forbidden();
-			}
+			if (!can("read", "package", fullName)) throw HttpError.forbidden();
 
 			return c.json(publishedPackage);
+		}
+	)
+	.get(
+		"/:packageName/-/:tarballName",
+		zValidator("param", validators.getTarball.request.param),
+		async (c) => {
+			const { packageName, tarballName } = c.req.valid("param")
+			const can = assertTokenAccess(c.get("token"))
+
+			if (!can("read", "package", packageName)) throw HttpError.forbidden();
+
+			const tarball = await packageService.getPackageTarball(packageName, tarballName)
+
+			return new Response(tarball.body, {
+				headers: { "Content-Type": "application/json" }
+			})
 		}
 	)
 	.put(
 		"/:packageName",
 		describeRoute({
-			description: "Create or update a package by publishing a new version",
+			description: "Publish a new version of a package",
 			responses: {
 				...standardOpenApiErrorResponses,
 				200: {
-					description: "Package updated success message",
+					description: "Package updated",
 					content: {
 						"application/json": {
 							schema: resolver(validators.put.response[200])
@@ -110,13 +120,10 @@ export const packageRouter = $.createApp()
 		zValidator("json", validators.put.request.json),
 		async (c) => {
 			const can = assertTokenAccess(c.get("token"));
-
 			const { packageName } = c.req.valid("param");
 			const body = c.req.valid("json");
 
-			if (!can("write", "package", packageName)) {
-				throw HttpError.forbidden();
-			}
+			if (!can("write", "package", packageName)) throw HttpError.forbidden();
 
 			await packageService.putPackage(packageName, body);
 
@@ -126,11 +133,11 @@ export const packageRouter = $.createApp()
 	.put(
 		"/:packageScope/:packageName",
 		describeRoute({
-			description: "Create or update a scoped package by publishing a new version",
+			description: "Publish a new version of a scoped package",
 			responses: {
 				...standardOpenApiErrorResponses,
 				200: {
-					description: "Package updated success message",
+					description: "Package updated",
 					content: {
 						"application/json": {
 							schema: resolver(validators.put.response[200])
@@ -143,81 +150,14 @@ export const packageRouter = $.createApp()
 		zValidator("json", validators.put.request.json),
 		async (c) => {
 			const can = assertTokenAccess(c.get("token"));
-
 			const { packageScope, packageName } = c.req.valid("param");
 			const fullName = `${packageScope}/${packageName}`;
 			const body = c.req.valid("json");
 
-			if (!can("write", "package", fullName)) {
-				throw HttpError.forbidden();
-			}
+			if (!can("write", "package", fullName)) throw HttpError.forbidden();
 
 			await packageService.putPackage(fullName, body);
 
 			return c.json({ message: "ok" });
-		}
-	)
-	.get(
-		"/:packageName/-/:tarballName",
-		describeRoute({
-			description: "Get a package tarball by it's name from the registry",
-			responses: {
-				...standardOpenApiErrorResponses,
-				200: {
-					description: "Package tarball",
-					content: {
-						"application/octet-stream": {
-							schema: resolver(validators.tarball.get.response[200])
-						}
-					}
-				}
-			}
-		}),
-		zValidator("param", validators.tarball.get.request.param),
-		async (c) => {
-			const can = assertTokenAccess(c.get("token"));
-
-			const { packageName, tarballName } = c.req.valid("param");
-
-			if (!can("read", "package", packageName)) {
-				throw HttpError.forbidden();
-			}
-
-			const packageTarball = await packageService.getPackageTarball(packageName, tarballName);
-
-			return new Response(packageTarball.body);
-		}
-	)
-	.get(
-		"/:packageScope/:packageName/-/:tarballName",
-		describeRoute({
-			description: "Get a scoped package tarball by it's name from the registry",
-			responses: {
-				...standardOpenApiErrorResponses,
-				200: {
-					description: "Package tarball",
-					content: {
-						"application/octet-stream": {
-							schema: resolver(validators.tarball.scoped.get.response[200])
-						}
-					}
-				}
-			}
-		}),
-		zValidator("param", validators.tarball.scoped.get.request.param),
-		async (c) => {
-			const can = assertTokenAccess(c.get("token"));
-
-			const { packageScope, packageName, tarballName } = c.req.valid("param");
-
-			const scopedPackageName = `${packageScope}/${packageName}`;
-
-			if (!can("read", "package", scopedPackageName)) {
-				throw HttpError.forbidden();
-			}
-
-			const packageTarball = await packageService.getPackageTarball(scopedPackageName, tarballName);
-
-			return new Response(packageTarball.body);
 		}
 	);

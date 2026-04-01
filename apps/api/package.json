@@ -22,10 +22,11 @@
 		"hono": "^4.11.3",
 		"hono-openapi": "^1.1.2",
 		"micromatch": "^4.0.8",
-		"semver-regex": "^4.0.5",
-		"zod": "^4.3.5"
+		"zod": "^4.3.5",
+		"semver": "^7.7.4"
 	},
 	"devDependencies": {
+		"@types/semver": "^7.7.1",
 		"@cloudflare/vitest-pool-workers": "^0.12.1",
 		"@types/micromatch": "^4.0.10",
 		"@types/node": "^25.0.6",

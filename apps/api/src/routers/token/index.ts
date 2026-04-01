@@ -1,7 +1,7 @@
 import { describeRoute, resolver } from "hono-openapi";
+import { withAccess } from '#middlewares/with-access';
 import { standardOpenApiErrorResponses } from "#openapi";
 import { tokenService } from "#services/token-service";
-import { assertTokenAccess } from "#utils/access";
 import { $ } from "#utils/factory";
 import { HttpError } from "#utils/http";
 import { zValidator } from "#utils/validation";
@@ -25,12 +25,11 @@ export const tokenRouter = $.createApp()
 			}
 		}),
 		zValidator("json", validators.post.request.json),
+		withAccess,
 		async (c) => {
-			const can = assertTokenAccess(c.get("token"));
-
 			const body = c.req.valid("json");
 
-			if (!can("write", "token", "*")) {
+			if (!c.get("can")("write", "token", "*")) {
 				throw HttpError.forbidden();
 			}
 
@@ -58,10 +57,9 @@ export const tokenRouter = $.createApp()
 				}
 			}
 		}),
+		withAccess,
 		async (c) => {
-			const can = assertTokenAccess(c.get("token"));
-
-			if (!can("read", "token", "*")) {
+			if (!c.get("can")("read", "token", "*")) {
 				throw HttpError.forbidden();
 			}
 
@@ -87,12 +85,11 @@ export const tokenRouter = $.createApp()
 			}
 		}),
 		zValidator("param", validators.get.request.param),
+		withAccess,
 		async (c) => {
-			const can = assertTokenAccess(c.get("token"));
-
 			const { token } = c.req.valid("param");
 
-			if (!can("read", "token", token)) {
+			if (!c.get("can")("read", "token", token)) {
 				throw HttpError.forbidden();
 			}
 
@@ -122,12 +119,11 @@ export const tokenRouter = $.createApp()
 			}
 		}),
 		zValidator("param", validators.delete.request.param),
+		withAccess,
 		async (c) => {
-			const can = assertTokenAccess(c.get("token"));
-
 			const { token } = c.req.valid("param");
 
-			if (!can("write", "token", token)) {
+			if (!c.get('can')("write", "token", token)) {
 				throw HttpError.forbidden();
 			}
 

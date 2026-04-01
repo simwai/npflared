@@ -1,20 +1,22 @@
 {
 	"compilerOptions": {
-		"esModuleInterop": true,
-		"skipLibCheck": true,
 		"target": "es2022",
+		"lib": [
+			"es2022",
+		],
+		"module": "es2022",
+		"moduleResolution": "bundler",
+		"moduleDetection": "force",
+		"skipLibCheck": true,
+		"esModuleInterop": true,
 		"allowJs": true,
 		"resolveJsonModule": true,
-		"module": "ESNext",
 		"noEmit": true,
-		"moduleResolution": "Bundler",
-		"moduleDetection": "force",
 		"isolatedModules": false,
 		"verbatimModuleSyntax": true,
-		"incremental": true,
 		"strict": true,
 		"noImplicitOverride": true,
-		"noFallthroughCasesInSwitch": true
+		"noFallthroughCasesInSwitch": true,
 	},
 	"exclude": [
 		"node_modules"

@@ -37,3 +37,7 @@ yarn-error.log*
 *.pem
 wrangler.json
 *.old
+.wrangler
+wrangler.local.toml
+.local.wrangler
+tsconfig.tsbuildinfo

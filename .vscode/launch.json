@@ -1,0 +1,56 @@
+// .vscode/launch.json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to wrangler worker",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "address": "127.0.0.1",
+      "localRoot": "${workspaceFolder}/apps/api/src",
+      "remoteRoot": "/",
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ],
+      "sourceMaps": true
+    },
+    {
+      "name": "CLI test --local (port 8788)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpx",
+      "runtimeArgs": [
+        "tsx"
+      ],
+      "program": "./src/index.ts",
+      "args": [
+        "test",
+        "--local",
+        "--port",
+        "8788"
+      ],
+      "cwd": "${workspaceFolder}/apps/cli",
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ],
+      "sourceMaps": true,
+      "env": {
+        "NODE_ENV": "development"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug both",
+      "configurations": [
+        "CLI test --local (port 8788)",
+        "Attach to wrangler worker"
+      ],
+      "preLaunchTask": "API dev"
+    }
+  ]
+}

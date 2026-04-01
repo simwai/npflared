@@ -14,14 +14,12 @@ export const packageService = {
 			where: (table, { eq }) => eq(table.name, packageName)
 		});
 
-		if (!publishedPackage) {
-			return undefined;
-		}
+		if (!publishedPackage) return undefined;
 
 		const versions = publishedPackage.packageReleases.reduce(
-			(versions, { version, manifest }) => {
-				versions[version] = manifest;
-				return versions;
+			(acc, { version, manifest }) => {
+				acc[version] = manifest;
+				return acc;
 			},
 			{} as Record<string, unknown>
 		);
@@ -59,7 +57,8 @@ export const packageService = {
 			throw HttpError.badRequest("No attachment");
 		}
 
-		const expectedAttachmentName = `${packageName.replace("/", "-")}-${versionToUpload}.tgz`;
+		const scopedSafeName = packageName.replace("/", "-"); // ← only change
+		const expectedAttachmentName = `${scopedSafeName}-${versionToUpload}.tgz`;
 
 		if (attachmentName !== expectedAttachmentName) {
 			throw HttpError.badRequest("Attachment name does not match");
@@ -121,24 +120,23 @@ export const packageService = {
 	},
 
 	async getPackageTarball(packageName: string, tarballName: string) {
-		const packageTarball = await env.BUCKET.get(tarballName);
+		const bucket = env.BUCKET as R2Bucket | undefined;
+
+		if (!bucket || typeof (bucket as any).get !== "function") {
+			throw HttpError.internalServerError("Storage bucket not configured");
+		}
+
+		// tarballName is already the exact R2 key e.g. "@scope/name-1.0.0.tgz"
+		const packageTarball = await bucket.get(tarballName);
+
 		if (!packageTarball) {
-			throw HttpError.notFound();
+			throw HttpError.notFound(`Tarball not found: ${tarballName}`);
 		}
 
-		const tarballMetadata = packageTarball.customMetadata;
-		if (!tarballMetadata) {
-			throw HttpError.internalServerError();
-		}
-
-		if (!("package" in tarballMetadata)) {
-			throw HttpError.internalServerError();
-		}
-
-		if (tarballMetadata.package !== packageName) {
-			throw HttpError.internalServerError();
+		if (packageTarball.customMetadata?.package !== packageName) {
+			throw HttpError.internalServerError("Tarball metadata does not match requested package");
 		}
 
 		return packageTarball;
 	}
-};
+}
