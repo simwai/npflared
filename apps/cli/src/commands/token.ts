@@ -90,11 +90,7 @@ const ensureCloudflareAccount = async (): Promise<string> => {
 
 	if (!accountId) {
 		log.error(
-			chalk.red(
-				`Could not retrieve Cloudflare account id, please login with ${chalk.bold.white(
-					"wrangler login"
-				)}.`
-			)
+			chalk.red(`Could not retrieve Cloudflare account id, please login with ${chalk.bold.white("wrangler login")}.`)
 		);
 		process.exit(1);
 	}
@@ -121,7 +117,7 @@ export const createTokenProgrammatically = async (options: {
 	tokenLabel: string;
 	local: boolean;
 }): Promise<string> => {
-	if (!options.local) await ensureCloudflareAccount()
+	if (!options.local) await ensureCloudflareAccount();
 
 	const { pkgName, scopeType, tokenLabel, local } = options;
 
@@ -190,9 +186,7 @@ const clearTokensForPackage = async (args: ClearTokensArgs) => {
     WHERE json_extract(scopes, '$[*].values') LIKE '%${escapedPkg}%';
   `;
 
-	cliSpinner.start(
-		`Deleting all tokens for package ${packageName} (${args.local ? "local" : "remote"})...`
-	);
+	cliSpinner.start(`Deleting all tokens for package ${packageName} (${args.local ? "local" : "remote"})...`);
 	await executeD1(sql, { local: args.local, cwd: apiCwd });
 	cliSpinner.stop("Tokens deleted.");
 

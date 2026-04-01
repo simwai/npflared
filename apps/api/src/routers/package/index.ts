@@ -84,22 +84,18 @@ export const packageRouter = $.createApp()
 			return c.json(publishedPackage);
 		}
 	)
-	.get(
-		"/:packageName/-/:tarballName",
-		zValidator("param", validators.getTarball.request.param),
-		async (c) => {
-			const { packageName, tarballName } = c.req.valid("param")
-			const can = assertTokenAccess(c.get("token"))
+	.get("/:packageName/-/:tarballName", zValidator("param", validators.getTarball.request.param), async (c) => {
+		const { packageName, tarballName } = c.req.valid("param");
+		const can = assertTokenAccess(c.get("token"));
 
-			if (!can("read", "package", packageName)) throw HttpError.forbidden();
+		if (!can("read", "package", packageName)) throw HttpError.forbidden();
 
-			const tarball = await packageService.getPackageTarball(packageName, tarballName)
+		const tarball = await packageService.getPackageTarball(packageName, tarballName);
 
-			return new Response(tarball.body, {
-				headers: { "Content-Type": "application/json" }
-			})
-		}
-	)
+		return new Response(tarball.body, {
+			headers: { "Content-Type": "application/json" }
+		});
+	})
 	.put(
 		"/:packageName",
 		describeRoute({

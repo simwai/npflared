@@ -1,5 +1,5 @@
 import { describeRoute, resolver } from "hono-openapi";
-import { withAccess } from '#middlewares/with-access';
+import { withAccess } from "#middlewares/with-access";
 import { standardOpenApiErrorResponses } from "#openapi";
 import { tokenService } from "#services/token-service";
 import { $ } from "#utils/factory";
@@ -123,7 +123,7 @@ export const tokenRouter = $.createApp()
 		async (c) => {
 			const { token } = c.req.valid("param");
 
-			if (!c.get('can')("write", "token", token)) {
+			if (!c.get("can")("write", "token", token)) {
 				throw HttpError.forbidden();
 			}
 

@@ -4,7 +4,7 @@ import { logger } from "hono/logger";
 import { TrieRouter } from "hono/router/trie-router";
 import { openAPIRouteHandler } from "hono-openapi";
 import { loadToken } from "#middlewares/load-token";
-import { tokenService } from '#services/token-service';
+import { tokenService } from "#services/token-service";
 import { assertTokenAccess } from "#utils/access";
 import { HttpError } from "#utils/http";
 import { version } from "../package.json";
@@ -36,6 +36,6 @@ app.all("*", () => {
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext) {
-		return app.fetch(request, env, ctx)
+		return app.fetch(request, env, ctx);
 	}
 };

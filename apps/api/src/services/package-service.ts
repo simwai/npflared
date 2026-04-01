@@ -139,4 +139,4 @@ export const packageService = {
 
 		return packageTarball;
 	}
-}
+};

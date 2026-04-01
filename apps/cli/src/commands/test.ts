@@ -63,9 +63,7 @@ export const test = async ({ local = false, port = 8787 }: TestOptions = {}) => 
 	await $({ cwd: publishTmpDir })`pnpm init --bare`;
 
 	const pkgJsonPath = join(publishTmpDir, "package.json");
-	const pkg = JSON.parse(
-		await readFile(pkgJsonPath, "utf-8")
-	) as {
+	const pkg = JSON.parse(await readFile(pkgJsonPath, "utf-8")) as {
 		name?: string;
 		version?: string;
 		publishConfig?: { access: string; registry: string };
@@ -76,9 +74,7 @@ export const test = async ({ local = false, port = 8787 }: TestOptions = {}) => 
 	}
 
 	// Generate a unique version for each test run
-	const uniqueVersion = `0.0.0-test-${Date.now()}-${Math.random()
-		.toString(36)
-		.slice(2, 8)}`;
+	const uniqueVersion = `0.0.0-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 	pkg.version = uniqueVersion;
 
 	const bareName = pkg.name.replace(/^@[^/]+\//, "");
@@ -116,11 +112,9 @@ export const test = async ({ local = false, port = 8787 }: TestOptions = {}) => 
 	const registryHost = url.host;
 	const registryBase = deployedUrl.replace(/\/$/, "");
 
-	const publishNpmrc = [
-		`${testScope}:registry=${registryBase}`,
-		`//${registryHost}/:_authToken=${testToken}`,
-		""
-	].join("\n");
+	const publishNpmrc = [`${testScope}:registry=${registryBase}`, `//${registryHost}/:_authToken=${testToken}`, ""].join(
+		"\n"
+	);
 
 	await writeFile(join(publishTmpDir, ".npmrc"), publishNpmrc, "utf-8");
 
@@ -146,11 +140,9 @@ export const test = async ({ local = false, port = 8787 }: TestOptions = {}) => 
 	// 5. Prepare INSTALL dir & .npmrc
 	await $({ cwd: installTmpDir })`pnpm init --bare`;
 
-	const installNpmrc = [
-		`${testScope}:registry=${registryBase}`,
-		`//${registryHost}/:_authToken=${testToken}`,
-		""
-	].join("\n");
+	const installNpmrc = [`${testScope}:registry=${registryBase}`, `//${registryHost}/:_authToken=${testToken}`, ""].join(
+		"\n"
+	);
 
 	await writeFile(join(installTmpDir, ".npmrc"), installNpmrc, "utf-8");
 
@@ -166,16 +158,10 @@ export const test = async ({ local = false, port = 8787 }: TestOptions = {}) => 
 	// 6. Install
 	cliSpinner.start("Installing test package...");
 	try {
-		const { name, version } = JSON.parse(
-			await readFile(pkgJsonPath, "utf-8")
-		) as { name: string; version: string };
+		const { name, version } = JSON.parse(await readFile(pkgJsonPath, "utf-8")) as { name: string; version: string };
 
 		// Log the exact spec pnpm will install
-		log.info(
-			chalk.cyan(
-				`Installing package:\n  spec: ${name}@${version}\n  from: ${registryBase}`
-			)
-		);
+		log.info(chalk.cyan(`Installing package:\n  spec: ${name}@${version}\n  from: ${registryBase}`));
 
 		await $({ quiet: true, cwd: installTmpDir })`pnpm add ${name}@${version}`;
 		cliSpinner.stop("Successfully installed test package");

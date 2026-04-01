@@ -1,10 +1,10 @@
-import semver from 'semver'
-import { z } from 'zod'
+import semver from "semver";
+import { z } from "zod";
 
 function isValidNpmSemver(value: string): boolean {
 	try {
 		const isValidSemver = semver.clean(value, { loose: true }) !== null;
-		return isValidSemver
+		return isValidSemver;
 	} catch {
 		return false;
 	}
@@ -14,13 +14,12 @@ const packageSchema = z.object({
 	_id: z.string(),
 	name: z.string(),
 	"dist-tags": z.record(z.string(), z.string()),
-	"versions": z.record(z.string(), z.any())
-})
+	versions: z.record(z.string(), z.any())
+});
 
-const npmSemver = z.string().refine(
-	(value) => isValidNpmSemver(value),
-	{ message: 'Version is not in a vlid npm-style semv' }
-)
+const npmSemver = z
+	.string()
+	.refine((value) => isValidNpmSemver(value), { message: "Version is not in a vlid npm-style semv" });
 
 export const validators = {
 	get: {
@@ -39,7 +38,7 @@ export const validators = {
 		},
 		response: {
 			200: packageSchema
-		},
+		}
 	},
 	getTarball: {
 		request: {

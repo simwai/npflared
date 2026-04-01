@@ -1,9 +1,7 @@
 {
 	"compilerOptions": {
 		"target": "es2022",
-		"lib": [
-			"es2022",
-		],
+		"lib": ["es2022"],
 		"module": "es2022",
 		"moduleResolution": "bundler",
 		"moduleDetection": "force",
@@ -16,12 +14,8 @@
 		"verbatimModuleSyntax": true,
 		"strict": true,
 		"noImplicitOverride": true,
-		"noFallthroughCasesInSwitch": true,
+		"noFallthroughCasesInSwitch": true
 	},
-	"exclude": [
-		"node_modules"
-	],
-	"include": [
-		"src"
-	]
+	"exclude": ["node_modules"],
+	"include": ["src"]
 }

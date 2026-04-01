@@ -106,26 +106,26 @@ describe("Permission Matrix", () => {
 						body:
 							check.method === "PUT"
 								? JSON.stringify({
-									...packagePublishPayload,
-									_id: fullName,
-									name: fullName,
-									versions: {
-										[version]: {
-											...packagePublishPayload.versions["1.0.0"],
-											_id: `${fullName}@${version}`,
-											name: fullName,
-											version: version,
-											dist: {
-												...packagePublishPayload.versions["1.0.0"].dist,
-												tarball: `http://localhost:8787/${fullName}/-/${fullName.replace("/", "-")}-${version}.tgz`
+										...packagePublishPayload,
+										_id: fullName,
+										name: fullName,
+										versions: {
+											[version]: {
+												...packagePublishPayload.versions["1.0.0"],
+												_id: `${fullName}@${version}`,
+												name: fullName,
+												version: version,
+												dist: {
+													...packagePublishPayload.versions["1.0.0"].dist,
+													tarball: `http://localhost:8787/${fullName}/-/${fullName.replace("/", "-")}-${version}.tgz`
+												}
 											}
+										},
+										_attachments: {
+											[`${fullName.replace("/", "-")}-${version}.tgz`]:
+												packagePublishPayload._attachments["mock-1.0.0.tgz"]
 										}
-									},
-									_attachments: {
-										[`${fullName.replace("/", "-")}-${version}.tgz`]:
-											packagePublishPayload._attachments["mock-1.0.0.tgz"]
-									}
-								})
+									})
 								: undefined
 					});
 
