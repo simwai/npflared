@@ -96,26 +96,20 @@ export const packageRouter = $.createApp()
 			headers: { "Content-Type": "application/gzip" }
 		});
 	})
-	.get("/:packageScope/:packageName/-/*", async (c) => {
-		const path: string = c.req.path;
-
-		const lastSlashIndex: number = path.lastIndexOf("/");
-		const secondLastSlashIndex: number = path.lastIndexOf("/", lastSlashIndex - 1);
-		const tarballStart: number = secondLastSlashIndex + 1;
-		const tarballEnd: number = path.length;
-		const tarballName = path.substring(tarballStart, tarballEnd).replace("/", "-").replace("@", "");
-
-		console.debug("tarballDef:", tarballName);
-
+	.get("/:packageScope/:packageName/-/:tarballPath{.+}", async (c) => {
 		const packageScope = c.req.param("packageScope");
 		const packageName = c.req.param("packageName");
+		const tarballPath = c.req.param("tarballPath");
 
 		const fullName = `${packageScope}/${packageName}`;
 		const can = assertTokenAccess(c.get("token"));
 
 		if (!can("read", "package", fullName)) throw HttpError.forbidden();
 
-		if (!tarballName) throw HttpError.badRequest("Missing tarball name");
+		if (!tarballPath) throw HttpError.badRequest("Missing tarball name");
+
+		const tarballName = tarballPath.split("/").pop() ?? tarballPath;
+
 		const tarball = await packageService.getPackageTarball(fullName, tarballName);
 
 		return new Response(tarball.body, {

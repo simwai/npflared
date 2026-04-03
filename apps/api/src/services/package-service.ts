@@ -7,6 +7,35 @@ import type { validators } from "#routers/package/validators";
 import { base64ToReadableStream } from "#utils/common";
 import { HttpError } from "#utils/http";
 
+type PutPackageBody = z.infer<typeof validators.put.request.json>;
+type Attachment = PutPackageBody["_attachments"][string];
+
+function getTarballFileNameFromUrl(tarballUrl: string) {
+	try {
+		const url = new URL(tarballUrl);
+		return decodeURIComponent(url.pathname.split("/").pop() ?? "");
+	} catch {
+		throw HttpError.badRequest("Invalid tarball url");
+	}
+}
+
+function getValidatedTarballFileName(packageData: PutPackageBody, version: string) {
+	const tarballUrl = packageData.versions[version]?.dist?.tarball;
+
+	if (!tarballUrl) {
+		throw HttpError.badRequest("No tarball url");
+	}
+
+	const tarballFileName = getTarballFileNameFromUrl(tarballUrl);
+	const attachments = packageData._attachments ?? {};
+
+	if (!tarballFileName || !(tarballFileName in attachments)) {
+		throw HttpError.badRequest("Attachment name does not match");
+	}
+
+	return tarballFileName;
+}
+
 export const packageService = {
 	async getPackage(packageName: string) {
 		const publishedPackage = await db.query.packageTable.findFirst({
@@ -32,7 +61,7 @@ export const packageService = {
 		};
 	},
 
-	async putPackage(packageName: string, packageData: z.infer<typeof validators.put.request.json>) {
+	async putPackage(packageName: string, packageData: PutPackageBody) {
 		const tag = Object.keys(packageData["dist-tags"]).at(0);
 		if (!tag) {
 			throw HttpError.badRequest("No tag");
@@ -43,6 +72,13 @@ export const packageService = {
 			throw HttpError.badRequest("No versions");
 		}
 
+		const tarballFileName = getValidatedTarballFileName(packageData, versionToUpload);
+
+		const attachment = packageData._attachments?.[tarballFileName] as Attachment | undefined;
+		if (!attachment) {
+			throw HttpError.badRequest("No attachment");
+		}
+
 		const conflictingPackageRelease = await db.query.packageReleaseTable.findFirst({
 			columns: { version: true },
 			where: (table, { eq, and }) => and(eq(table.package, packageName), eq(table.version, versionToUpload))
@@ -51,13 +87,6 @@ export const packageService = {
 		if (conflictingPackageRelease) {
 			throw HttpError.conflict("Version already exists");
 		}
-
-		const attachment = Object.values(packageData._attachments ?? {}).at(0);
-		if (!attachment) {
-			throw HttpError.badRequest("No attachment");
-		}
-
-		const tarballFileName = `${packageName.replace("@", "").replace("/", "-")}-${versionToUpload}.tgz`;
 
 		const now = Date.now();
 
@@ -91,13 +120,14 @@ export const packageService = {
 		]);
 
 		const uploadStream = new FixedLengthStream(attachment.length);
-
-		base64ToReadableStream(attachment.data).pipeTo(uploadStream.writable);
+		const pipePromise = base64ToReadableStream(attachment.data).pipeTo(uploadStream.writable);
 
 		await env.BUCKET.put(tarballFileName, uploadStream.readable, {
 			httpMetadata: { contentType: "application/gzip" },
 			customMetadata: { package: packageName, version: versionToUpload }
 		});
+
+		await pipePromise;
 
 		return {
 			package: insertedPackage[0],
@@ -112,8 +142,7 @@ export const packageService = {
 			throw HttpError.internalServerError("Storage bucket not configured");
 		}
 
-		const r2Key = tarballName.replace("@", "").replace("/", "-");
-		const packageTarball = await bucket.get(r2Key);
+		const packageTarball = await bucket.get(tarballName);
 
 		if (!packageTarball) {
 			throw HttpError.notFound(`Tarball not found: ${tarballName}`);

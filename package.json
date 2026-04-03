@@ -7,11 +7,11 @@
     "format": "biome format --write",
     "knip": "knip",
     "sherif": "sherif",
-    "quality": "dotenv -e .env -- turbo run knip sherif check-format check-types test:single",
+    "quality": "turbo run knip sherif check-format check-types test:single",
     "check-format": "biome check",
-    "check-types": "dotenv -e .env -- turbo check-types",
-    "test:watch": "dotenv -e .env -- turbo test:watch",
-    "test:single": "dotenv -e .env -- turbo test:single",
+    "check-types": "turbo check-types",
+    "test:watch": "turbo test:watch",
+    "test:single": "turbo test:single",
     "smoke-test": "pnpm --filter @npflared/api run test:single"
   },
   "devDependencies": {
