@@ -78,14 +78,14 @@ const fmtPerm = (p: PackagePerms): string => {
 const renderLegend = () => {
 	log.info(
 		chalk.gray("Legend: ") +
-			`${chalk.green("R/W")} read+write  ` +
-			`${chalk.cyan("R")} read/install  ` +
-			`${chalk.yellow("W")} write/publish  ` +
-			`${chalk.dim("·")} no access`
+		`${chalk.green("R/W")} read+write  ` +
+		`${chalk.cyan("R")} read/install  ` +
+		`${chalk.yellow("W")} write/publish  ` +
+		`${chalk.dim("·")} no access`
 	);
 };
 
-const fmtTokenPreview = (token: string) => `${token.slice(0, 8)}…${token.slice(-4)}`;
+const fmtToken = (token: string) => token;
 
 const fmtAge = (createdAt: number): string => {
 	const secs = Math.floor(Date.now() / 1000) - createdAt;
@@ -285,12 +285,12 @@ const clearTokensForPackage = async (args: ClearTokensArgs) => {
 };
 
 const removeTokenByValue = async (args: RemoveTokenArgs) => {
-	intro(chalk.bold(`npflared  token remove  ${chalk.gray(args.local ? "local" : "remote")}`));
+	intro(chalk.bold(`npflared  token delete  ${chalk.gray(args.local ? "local" : "remote")}`));
 	await ensureCloudflareAccount();
 
 	const tokenValue = args.token ?? (await promptTokenValue());
 
-	cliSpinner.start(`Deleting token ${fmtTokenPreview(tokenValue)}…`);
+	cliSpinner.start(`Deleting token ${fmtToken(tokenValue)}…`);
 	await executeD1(`DELETE FROM token WHERE token = '${tokenValue.replace(/'/g, "''")}';`, {
 		local: args.local,
 		cwd: apiCwd
@@ -337,7 +337,7 @@ const listTokensForPackage = async (args: ListTokensArgs) => {
 			return weight(b.perms) - weight(a.perms);
 		})
 		.map(({ row, perms }) => [
-			chalk.white(fmtTokenPreview(row.token)),
+			chalk.white(fmtToken(row.token)),
 			chalk.gray(row.name || "—"),
 			perms.read ? chalk.green("✔") : chalk.dim("✖"),
 			perms.write ? chalk.green("✔") : chalk.dim("✖"),
@@ -345,7 +345,7 @@ const listTokensForPackage = async (args: ListTokensArgs) => {
 			chalk.dim(fmtAge(row.created_at))
 		]);
 
-	renderTable(["Token", "Label", "Read", "Write", "Mode", "Created"], tableRows, [16, 28, 6, 6, 6, 10]);
+	renderTable(["Token", "Label", "Read", "Write", "Mode", "Created"], tableRows, [32, 28, 6, 6, 6, 10]);
 
 	renderLegend();
 	log.info(
@@ -366,7 +366,7 @@ const listTokensForScope = async (args: ListScopeArgs) => {
 	await ensureCloudflareAccount();
 
 	cliSpinner.start(`Loading tokens under ${chalk.bold(scope)}…`);
-	const rawRows = await executeD1(
+	const rawRows = await executeD1<TokenRow>(
 		`SELECT token, name, scopes, created_at, updated_at FROM token WHERE scopes LIKE '%${scope.replace(/'/g, "''")}/%';`,
 		{ rows: true, local: args.local, cwd: apiCwd }
 	);
@@ -399,13 +399,13 @@ const listTokensForScope = async (args: ListScopeArgs) => {
 	const displayedPkgs = allPkgs.slice(0, MAX_PKG_COLS);
 	const hasMore = allPkgs.length > MAX_PKG_COLS;
 
-	const widths = [16, 24, ...displayedPkgs.map(() => 8)];
+	const widths = [32, 24, ...displayedPkgs.map(() => 8)];
 	const header = ["Token", "Label", ...displayedPkgs.map((p) => p.replace(`${scope}/`, "").slice(0, 8))];
 
 	const tableRows = rows.map((row) => {
 		const scopes = parseScopes(row.scopes);
 		return [
-			chalk.white(fmtTokenPreview(row.token)),
+			chalk.white(fmtToken(row.token)),
 			chalk.gray(row.name || "—"),
 			...displayedPkgs.map((pkg) => fmtPerm(resolvePerms(scopes, pkg)))
 		];
@@ -438,8 +438,8 @@ const lookupToken = async (args: LookupTokenArgs) => {
 
 	const tokenValue = args.token ?? (await promptTokenValue());
 
-	cliSpinner.start(`Looking up token ${fmtTokenPreview(tokenValue)}…`);
-	const rawRows = await executeD1(
+	cliSpinner.start(`Looking up token ${fmtToken(tokenValue)}…`);
+	const rawRows = await executeD1<TokenRow>(
 		`SELECT token, name, scopes, created_at, updated_at FROM token WHERE token = '${tokenValue.replace(/'/g, "''")}';`,
 		{ rows: true, local: args.local, cwd: apiCwd }
 	);
@@ -447,7 +447,7 @@ const lookupToken = async (args: LookupTokenArgs) => {
 	cliSpinner.stop();
 
 	if (!row) {
-		log.error(`Token ${chalk.bold.white(fmtTokenPreview(tokenValue))} not found.`);
+		log.error(`Token ${chalk.bold.white(fmtToken(tokenValue))} not found.`);
 		outro("Done.");
 		return;
 	}
@@ -456,7 +456,7 @@ const lookupToken = async (args: LookupTokenArgs) => {
 	const allPkgs = Array.from(new Set(scopes.flatMap((s) => (Array.isArray(s.values) ? s.values : [])))).sort();
 
 	log.info("");
-	log.info(`  ${chalk.bold("Token")}    ${chalk.white(fmtTokenPreview(row.token))}`);
+	log.info(`  ${chalk.bold("Token")}    ${chalk.white(fmtToken(row.token))}`);
 	log.info(`  ${chalk.bold("Label")}    ${chalk.white(row.name || "—")}`);
 	log.info(`  ${chalk.bold("Created")}  ${chalk.gray(fmtAge(row.created_at))}`);
 	log.info(`  ${chalk.bold("Target")}   ${chalk.gray(args.local ? "local D1" : "remote D1")}`);
@@ -495,11 +495,7 @@ export const tokenCommands: CommandModule = {
 				"Create a new token scoped to a specific package",
 				(yy) =>
 					yy
-						.option("package", {
-							alias: "p",
-							type: "string",
-							describe: "Package name (e.g. @scope/pkg)"
-						})
+						.option("package", { alias: "p", type: "string", describe: "Package name (e.g. @scope/pkg)" })
 						.check((argv) => {
 							if (argv.package) {
 								const error = validateScopedPackageName(argv.package);
@@ -507,21 +503,9 @@ export const tokenCommands: CommandModule = {
 							}
 							return true;
 						})
-						.option("mode", {
-							alias: "m",
-							choices: ["package:read", "package:write", "package:read+write"] as const
-						})
-						.option("name", {
-							alias: "n",
-							type: "string",
-							describe: "Label for this token"
-						})
-						.option("local", {
-							alias: "l",
-							type: "boolean",
-							default: false,
-							describe: "Use local D1"
-						}),
+						.option("mode", { alias: "m", choices: ["package:read", "package:write", "package:read+write"] as const })
+						.option("name", { alias: "n", type: "string", describe: "Label for this token" })
+						.option("local", { alias: "l", type: "boolean", default: false, describe: "Use local D1" }),
 				async (argv) => {
 					await cliContext.run({ packageManagerAgent: "npm" }, () =>
 						createToken({
@@ -538,11 +522,7 @@ export const tokenCommands: CommandModule = {
 				"Delete all tokens that grant access to a given package",
 				(yy) =>
 					yy
-						.option("package", {
-							alias: "p",
-							type: "string",
-							describe: "Full package name (e.g. @scope/pkg)"
-						})
+						.option("package", { alias: "p", type: "string", describe: "Full package name (e.g. @scope/pkg)" })
 						.check((argv) => {
 							if (argv.package) {
 								const error = validateScopedPackageName(argv.package);
@@ -550,11 +530,7 @@ export const tokenCommands: CommandModule = {
 							}
 							return true;
 						})
-						.option("local", {
-							alias: "l",
-							type: "boolean",
-							default: false
-						}),
+						.option("local", { alias: "l", type: "boolean", default: false }),
 				async (argv) => {
 					await cliContext.run({ packageManagerAgent: "npm" }, () =>
 						clearTokensForPackage({
@@ -569,17 +545,18 @@ export const tokenCommands: CommandModule = {
 				"Delete a single token by its value",
 				(yy) =>
 					yy
-						.option("token", {
-							alias: "t",
-							type: "string",
-							describe: "Token value to delete"
+						.option("token", { alias: "t", type: "string", describe: "Token value to delete" })
+						.option("package", { alias: "p", type: "string", describe: "Package name (e.g. @scope/pkg)" })
+						.check((argv) => {
+							if (argv.package) {
+								const error = validateScopedPackageName(argv.package);
+								if (error) throw new Error(error);
+							}
+							return true;
 						})
-						.option("local", {
-							alias: "l",
-							type: "boolean",
-							default: false,
-							describe: "Use local D1"
-						}),
+						.option("mode", { alias: "m", choices: ["package:read", "package:write", "package:read+write"] as const })
+						.option("name", { alias: "n", type: "string", describe: "Label for this token" })
+						.option("local", { alias: "l", type: "boolean", default: false, describe: "Use local D1" }),
 				async (argv) => {
 					await cliContext.run({ packageManagerAgent: "npm" }, () =>
 						removeTokenByValue({
@@ -594,11 +571,7 @@ export const tokenCommands: CommandModule = {
 				"List all tokens that grant access to a specific package",
 				(yy) =>
 					yy
-						.option("package", {
-							alias: "p",
-							type: "string",
-							describe: "Full package name (e.g. @scope/pkg)"
-						})
+						.option("package", { alias: "p", type: "string", describe: "Full package name (e.g. @scope/pkg)" })
 						.check((argv) => {
 							if (argv.package) {
 								const error = validateScopedPackageName(argv.package);
@@ -606,11 +579,7 @@ export const tokenCommands: CommandModule = {
 							}
 							return true;
 						})
-						.option("local", {
-							alias: "l",
-							type: "boolean",
-							default: false
-						}),
+						.option("local", { alias: "l", type: "boolean", default: false }),
 				async (argv) => {
 					await cliContext.run({ packageManagerAgent: "npm" }, () =>
 						listTokensForPackage({
@@ -625,16 +594,8 @@ export const tokenCommands: CommandModule = {
 				"Show a permission matrix for all packages under a scope",
 				(yy) =>
 					yy
-						.option("scope", {
-							alias: "s",
-							type: "string",
-							describe: "Scope (e.g. @babadeluxe)"
-						})
-						.option("local", {
-							alias: "l",
-							type: "boolean",
-							default: false
-						}),
+						.option("scope", { alias: "s", type: "string", describe: "Scope (e.g. @babadeluxe)" })
+						.option("local", { alias: "l", type: "boolean", default: false }),
 				async (argv) => {
 					await cliContext.run({ packageManagerAgent: "npm" }, () =>
 						listTokensForScope({
@@ -649,16 +610,8 @@ export const tokenCommands: CommandModule = {
 				"Inspect a token and show what packages and permissions it has",
 				(yy) =>
 					yy
-						.option("token", {
-							alias: "t",
-							type: "string",
-							describe: "Token value to inspect"
-						})
-						.option("local", {
-							alias: "l",
-							type: "boolean",
-							default: false
-						}),
+						.option("token", { alias: "t", type: "string", describe: "Token value to inspect" })
+						.option("local", { alias: "l", type: "boolean", default: false }),
 				async (argv) => {
 					await cliContext.run({ packageManagerAgent: "npm" }, () =>
 						lookupToken({
