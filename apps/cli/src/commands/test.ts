@@ -84,10 +84,9 @@ async function createPackage(
 
 	await writeFile(pkgJsonPath, JSON.stringify(pkg, null, 2), "utf-8");
 
-	const jsBody =
-		name.endsWith("/test-dep")
-			? `module.exports = { value: "dep-ok" };\n`
-			: `module.exports = { value: "main-ok" };\n`;
+	const jsBody = name.endsWith("/test-dep")
+		? `module.exports = { value: "dep-ok" };\n`
+		: `module.exports = { value: "main-ok" };\n`;
 
 	await writeFile(join(dir, "index.js"), jsBody, "utf-8");
 	await writeScopedNpmrc(dir, cfg);
@@ -193,11 +192,7 @@ async function runCompatTests(cfg: RegistryConfig, published: PublishedSet) {
 
 		log.info(
 			chalk.cyan(
-				[
-					"Compat metadata check:",
-					`  main: ${published.main.name}`,
-					`  dep: ${published.dependency.name}`
-				].join("\n")
+				["Compat metadata check:", `  main: ${published.main.name}`, `  dep: ${published.dependency.name}`].join("\n")
 			)
 		);
 

@@ -78,10 +78,10 @@ const fmtPerm = (p: PackagePerms): string => {
 const renderLegend = () => {
 	log.info(
 		chalk.gray("Legend: ") +
-		`${chalk.green("R/W")} read+write  ` +
-		`${chalk.cyan("R")} read/install  ` +
-		`${chalk.yellow("W")} write/publish  ` +
-		`${chalk.dim("·")} no access`
+			`${chalk.green("R/W")} read+write  ` +
+			`${chalk.cyan("R")} read/install  ` +
+			`${chalk.yellow("W")} write/publish  ` +
+			`${chalk.dim("·")} no access`
 	);
 };
 
