@@ -1,6 +1,5 @@
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
-import { clean } from "./commands/clean";
 import { install } from "./commands/install";
 import { test } from "./commands/test";
 import { tokenCommands } from "./commands/token";
@@ -14,14 +13,6 @@ yargs(hideBin(process.argv))
 		(yargs) => yargs,
 		async () => {
 			await install();
-		}
-	)
-	.command(
-		"clean",
-		"Clean the local npflared folder",
-		(yargs) => yargs,
-		async () => {
-			await clean();
 		}
 	)
 	.command(tokenCommands)
