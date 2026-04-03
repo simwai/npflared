@@ -28,5 +28,8 @@
   },
   "workspaces": [
     "apps/*"
-  ]
+  ],
+  "dependencies": {
+    "dotenv": "^17.4.0"
+  }
 }
