@@ -48,10 +48,7 @@ async function writeScopedNpmrc(dir: string, cfg: RegistryConfig) {
 	);
 }
 
-async function createAndPublishTestPackage(
-	publishTmpDir: string,
-	cfg: RegistryConfig
-): Promise<PublishedPackage> {
+async function createAndPublishTestPackage(publishTmpDir: string, cfg: RegistryConfig): Promise<PublishedPackage> {
 	await $({ cwd: publishTmpDir })`pnpm init --bare`;
 
 	const pkgJsonPath = join(publishTmpDir, "package.json");
@@ -121,11 +118,7 @@ async function runSmokeTest(cfg: RegistryConfig): Promise<PublishedPackage> {
 		await $({ cwd: installTmpDir })`pnpm init --bare`;
 		await writeScopedNpmrc(installTmpDir, cfg);
 
-		log.info(
-			chalk.cyan(
-				`Smoke install:\n  spec: ${published.name}@${published.version}\n  from: ${cfg.registryBase}`
-			)
-		);
+		log.info(chalk.cyan(`Smoke install:\n  spec: ${published.name}@${published.version}\n  from: ${cfg.registryBase}`));
 
 		cliSpinner.start("Smoke: installing exact version...");
 		await $({ quiet: true, cwd: installTmpDir })`pnpm add ${published.name}@${published.version}`;

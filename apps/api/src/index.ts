@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import { TrieRouter } from "hono/router/trie-router";
 import { openAPIRouteHandler } from "hono-openapi";
 import { loadToken } from "#middlewares/load-token";
-import { HttpError } from '#utils/http';
+import { HttpError } from "#utils/http";
 import { version } from "../package.json";
 import { packageRouter } from "./routers/package";
 import { tokenRouter } from "./routers/token";

@@ -1,14 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
-import {
-	intro,
-	isCancel,
-	log,
-	outro,
-	select,
-	spinner,
-	text
-} from "@clack/prompts";
+import { intro, isCancel, log, outro, select, spinner, text } from "@clack/prompts";
 import chalk from "chalk";
 import { encode as encodeBase32 } from "uuid-b32";
 import type { Argv, CommandModule } from "yargs";
@@ -46,8 +38,7 @@ type ListTokensArgs = { package?: string; local: boolean };
 type ListScopeArgs = { scope?: string; package?: string; local: boolean };
 type LookupTokenArgs = { token?: string; local: boolean };
 
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-	typeof v === "object" && v !== null;
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
 
 const isTokenRow = (v: unknown): v is TokenRow =>
 	isRecord(v) &&
@@ -87,10 +78,10 @@ const fmtPerm = (p: PackagePerms): string => {
 const renderLegend = () => {
 	log.info(
 		chalk.gray("Legend: ") +
-		`${chalk.green("R/W")} read+write  ` +
-		`${chalk.cyan("R")} read/install  ` +
-		`${chalk.yellow("W")} write/publish  ` +
-		`${chalk.dim("·")} no access`
+			`${chalk.green("R/W")} read+write  ` +
+			`${chalk.cyan("R")} read/install  ` +
+			`${chalk.yellow("W")} write/publish  ` +
+			`${chalk.dim("·")} no access`
 	);
 };
 
@@ -118,7 +109,12 @@ const formatRow = (cols: string[], widths: number[]) =>
 
 const renderTable = (header: string[], rows: string[][], widths: number[]) => {
 	log.info("");
-	log.info(formatRow(header.map((h) => chalk.bold(h)), widths));
+	log.info(
+		formatRow(
+			header.map((h) => chalk.bold(h)),
+			widths
+		)
+	);
 	log.info(chalk.gray("─".repeat(widths.reduce((a, b) => a + b + 2, -2))));
 	for (const row of rows) log.info(formatRow(row, widths));
 	log.info("");
@@ -130,11 +126,7 @@ const ensureCloudflareAccount = async (): Promise<string> => {
 	cliSpinner.stop();
 
 	if (!accountId) {
-		log.error(
-			chalk.red(
-				`Could not retrieve account. Login with ${chalk.bold.white("wrangler login")}.`
-			)
-		);
+		log.error(chalk.red(`Could not retrieve account. Login with ${chalk.bold.white("wrangler login")}.`));
 		process.exit(1);
 	}
 
@@ -283,10 +275,10 @@ const clearTokensForPackage = async (args: ClearTokensArgs) => {
 	const packageName = args.package ?? (await promptPackageName());
 
 	cliSpinner.start(`Deleting tokens for ${chalk.bold(packageName)}…`);
-	await executeD1(
-		`DELETE FROM token WHERE scopes LIKE '%${packageName.replace(/'/g, "''")}%';`,
-		{ local: args.local, cwd: apiCwd }
-	);
+	await executeD1(`DELETE FROM token WHERE scopes LIKE '%${packageName.replace(/'/g, "''")}%';`, {
+		local: args.local,
+		cwd: apiCwd
+	});
 	cliSpinner.stop("Tokens deleted.");
 
 	outro("Done.");
@@ -299,10 +291,10 @@ const removeTokenByValue = async (args: RemoveTokenArgs) => {
 	const tokenValue = args.token ?? (await promptTokenValue());
 
 	cliSpinner.start(`Deleting token ${fmtTokenPreview(tokenValue)}…`);
-	await executeD1(
-		`DELETE FROM token WHERE token = '${tokenValue.replace(/'/g, "''")}';`,
-		{ local: args.local, cwd: apiCwd }
-	);
+	await executeD1(`DELETE FROM token WHERE token = '${tokenValue.replace(/'/g, "''")}';`, {
+		local: args.local,
+		cwd: apiCwd
+	});
 	cliSpinner.stop("Token deleted.");
 
 	outro("Done.");
@@ -341,8 +333,7 @@ const listTokensForPackage = async (args: ListTokensArgs) => {
 			return { row, perms };
 		})
 		.sort((a, b) => {
-			const weight = (p: PackagePerms) =>
-				p.read && p.write ? 2 : p.write ? 1 : p.read ? 0 : -1;
+			const weight = (p: PackagePerms) => (p.read && p.write ? 2 : p.write ? 1 : p.read ? 0 : -1);
 			return weight(b.perms) - weight(a.perms);
 		})
 		.map(({ row, perms }) => [
@@ -354,17 +345,11 @@ const listTokensForPackage = async (args: ListTokensArgs) => {
 			chalk.dim(fmtAge(row.created_at))
 		]);
 
-	renderTable(
-		["Token", "Label", "Read", "Write", "Mode", "Created"],
-		tableRows,
-		[16, 28, 6, 6, 6, 10]
-	);
+	renderTable(["Token", "Label", "Read", "Write", "Mode", "Created"], tableRows, [16, 28, 6, 6, 6, 10]);
 
 	renderLegend();
 	log.info(
-		chalk.gray(
-			`${rows.length} token(s) for ${chalk.white(packageName)} on ${args.local ? "local" : "remote"} D1`
-		)
+		chalk.gray(`${rows.length} token(s) for ${chalk.white(packageName)} on ${args.local ? "local" : "remote"} D1`)
 	);
 
 	outro("Done.");
@@ -415,11 +400,7 @@ const listTokensForScope = async (args: ListScopeArgs) => {
 	const hasMore = allPkgs.length > MAX_PKG_COLS;
 
 	const widths = [16, 24, ...displayedPkgs.map(() => 8)];
-	const header = [
-		"Token",
-		"Label",
-		...displayedPkgs.map((p) => p.replace(`${scope}/`, "").slice(0, 8))
-	];
+	const header = ["Token", "Label", ...displayedPkgs.map((p) => p.replace(`${scope}/`, "").slice(0, 8))];
 
 	const tableRows = rows.map((row) => {
 		const scopes = parseScopes(row.scopes);
@@ -496,18 +477,10 @@ const lookupToken = async (args: LookupTokenArgs) => {
 		];
 	});
 
-	renderTable(
-		["Package", "Read", "Write", "Mode"],
-		tableRows,
-		[36, 6, 6, 6]
-	);
+	renderTable(["Package", "Read", "Write", "Mode"], tableRows, [36, 6, 6, 6]);
 
 	renderLegend();
-	log.info(
-		chalk.gray(
-			`${allPkgs.length} package scope(s) · token ${chalk.white(row.token)}`
-		)
-	);
+	log.info(chalk.gray(`${allPkgs.length} package scope(s) · token ${chalk.white(row.token)}`));
 
 	outro("Done.");
 };
@@ -553,28 +526,26 @@ export const tokenCommands: CommandModule = {
 					);
 				}
 			)
-			.command(
-				"remove",
-				"Delete a single token by its value",
-				(yy) =>
-					yy.option("package", {
+			.command("remove", "Delete a single token by its value", (yy) =>
+				yy
+					.option("package", {
 						alias: "p",
 						type: "string",
 						describe: "Package name (e.g. @scope/pkg)"
 					})
-						.check((argv) => {
-							if (argv.package) {
-								const error = validateScopedPackageName(argv.package);
-								if (error) throw new Error(error);
-							}
-							return true;
-						})
-						.option("mode", {
-							alias: "m",
-							choices: ["package:read", "package:write", "package:read+write"] as const
-						})
-						.option("name", { alias: "n", type: "string", describe: "Label for this token" })
-						.option("local", { alias: "l", type: "boolean", default: false, describe: "Use local D1" }),
+					.check((argv) => {
+						if (argv.package) {
+							const error = validateScopedPackageName(argv.package);
+							if (error) throw new Error(error);
+						}
+						return true;
+					})
+					.option("mode", {
+						alias: "m",
+						choices: ["package:read", "package:write", "package:read+write"] as const
+					})
+					.option("name", { alias: "n", type: "string", describe: "Label for this token" })
+					.option("local", { alias: "l", type: "boolean", default: false, describe: "Use local D1" })
 			)
 			.command(
 				"list",

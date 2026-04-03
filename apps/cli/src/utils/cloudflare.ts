@@ -61,53 +61,63 @@ const executeCommand = (command: ExtendedResolvedCommand, options: { cwd?: strin
 	return $({ quiet: true, ...options })`${command.command} ${command.args}`;
 };
 
-const D1MetaSchema = z.object({
-	served_by: z.string().optional(),
-	served_by_region: z.string().optional(),
-	served_by_colo: z.string().optional(),
-	served_by_primary: z.boolean().optional(),
-	timings: z.record(z.string(), z.number()).optional(),
-	duration: z.number().optional(),
-	changes: z.number().optional(),
-	last_row_id: z.number().optional(),
-	changed_db: z.boolean().optional(),
-	size_after: z.number().optional(),
-	rows_read: z.number().optional(),
-	rows_written: z.number().optional(),
-	num_tables: z.number().optional(),
-	total_attempts: z.number().optional()
-}).passthrough();
+const D1MetaSchema = z
+	.object({
+		served_by: z.string().optional(),
+		served_by_region: z.string().optional(),
+		served_by_colo: z.string().optional(),
+		served_by_primary: z.boolean().optional(),
+		timings: z.record(z.string(), z.number()).optional(),
+		duration: z.number().optional(),
+		changes: z.number().optional(),
+		last_row_id: z.number().optional(),
+		changed_db: z.boolean().optional(),
+		size_after: z.number().optional(),
+		rows_read: z.number().optional(),
+		rows_written: z.number().optional(),
+		num_tables: z.number().optional(),
+		total_attempts: z.number().optional()
+	})
+	.passthrough();
 
-const D1StatementSchema = z.object({
-	results: z.array(z.unknown()).default([]),
-	success: z.boolean().optional(),
-	finalBookmark: z.string().optional(),
-	meta: D1MetaSchema.optional()
-}).passthrough();
+const D1StatementSchema = z
+	.object({
+		results: z.array(z.unknown()).default([]),
+		success: z.boolean().optional(),
+		finalBookmark: z.string().optional(),
+		meta: D1MetaSchema.optional()
+	})
+	.passthrough();
 
 const D1StatementArraySchema = z.array(D1StatementSchema);
 
-const D1WrappedResultSchema = z.object({
-	result: z.array(D1StatementSchema)
-}).passthrough();
+const D1WrappedResultSchema = z
+	.object({
+		result: z.array(D1StatementSchema)
+	})
+	.passthrough();
 
 const CreateD1DatabaseOutputSchema = z.object({
-	d1_databases: z.array(
-		z.object({
-			binding: z.string(),
-			database_name: z.string(),
-			database_id: z.string()
-		})
-	).min(1)
+	d1_databases: z
+		.array(
+			z.object({
+				binding: z.string(),
+				database_name: z.string(),
+				database_id: z.string()
+			})
+		)
+		.min(1)
 });
 
 const CreateR2BucketOutputSchema = z.object({
-	r2_buckets: z.array(
-		z.object({
-			binding: z.string(),
-			bucket_name: z.string()
-		})
-	).min(1)
+	r2_buckets: z
+		.array(
+			z.object({
+				binding: z.string(),
+				bucket_name: z.string()
+			})
+		)
+		.min(1)
 });
 
 function parseJsonFromMixedOutput(stdout: string): unknown {
@@ -215,23 +225,14 @@ export const listR2Buckets = async () => {
 };
 
 export const createR2Bucket = async (name: string) => {
-	return runWranglerAndParseJson(
-		["-y", "wrangler", "r2", "bucket", "create", name],
-		CreateR2BucketOutputSchema
-	);
+	return runWranglerAndParseJson(["-y", "wrangler", "r2", "bucket", "create", name], CreateR2BucketOutputSchema);
 };
 
 export const createD1Database = async (name: string) => {
-	return runWranglerAndParseJson(
-		["-y", "wrangler", "d1", "create", name],
-		CreateD1DatabaseOutputSchema
-	);
+	return runWranglerAndParseJson(["-y", "wrangler", "d1", "create", name], CreateD1DatabaseOutputSchema);
 };
 
-export const applyD1Migrations = async (
-	d1DatabaseName: string,
-	config: { cwd?: string; local?: boolean } = {}
-) => {
+export const applyD1Migrations = async (d1DatabaseName: string, config: { cwd?: string; local?: boolean } = {}) => {
 	const { cwd, local = false } = config;
 	const baseArgs = ["-y", "wrangler", "d1", "migrations", "apply", d1DatabaseName];
 	if (local) baseArgs.push("--local");
@@ -248,15 +249,9 @@ export const deploy = async (config: { cwd?: string } = {}) => {
 	return match ? `https://${match[0]}` : "<unknown>";
 };
 
-export async function executeD1(
-	sql: string,
-	options?: ExecuteD1TextOptions
-): Promise<string>;
+export async function executeD1(sql: string, options?: ExecuteD1TextOptions): Promise<string>;
 
-export async function executeD1<TRow = unknown>(
-	sql: string,
-	options: ExecuteD1RowsOptions<TRow>
-): Promise<TRow[]>;
+export async function executeD1<TRow = unknown>(sql: string, options: ExecuteD1RowsOptions<TRow>): Promise<TRow[]>;
 
 export async function executeD1<TSchema extends z.ZodTypeAny>(
 	sql: string,
@@ -267,11 +262,7 @@ export async function executeD1<TRow = unknown, TSchema extends z.ZodTypeAny = z
 	sql: string,
 	options: ExecuteD1TextOptions | ExecuteD1RowsOptions<TRow> | ExecuteD1SchemaOptions<TSchema> = {}
 ): Promise<string | TRow[] | z.infer<TSchema>[]> {
-	const {
-		cwd,
-		local = false,
-		useFile = false
-	} = options;
+	const { cwd, local = false, useFile = false } = options;
 
 	const wantRows = "rows" in options && options.rows === true;
 	const wantJson = wantRows || ("json" in options && Boolean(options.json) === true);
