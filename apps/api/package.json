@@ -6,12 +6,12 @@
 		"#*": "./src/*.ts"
 	},
 	"scripts": {
-		"dev": "wrangler dev",
-		"deploy": "wrangler deploy --minify --config wrangler.toml",
+		"dev": "wrangler dev --config wrangler.toml",
+		"deploy": "wrangler deploy --minify --config wrangler.local.toml",
 		"tail": "wrangler tail --config wrangler.toml",
 		"generate-migrations": "drizzle-kit generate",
-		"migrate:local": "wrangler d1 migrations apply DB",
-		"migrate:prod": "wrangler d1 migrations apply DB --remote",
+		"migrate:local": "wrangler d1 migrations apply DB --config wrangler.toml",
+		"migrate:prod": "wrangler d1 migrations apply DB --remote --config wrangler.local.toml",
 		"test:watch": "vitest watch",
 		"test:single": "vitest run",
 		"check-types": "tsc --noEmit"
