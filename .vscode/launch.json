@@ -3,13 +3,11 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Attach to wrangler worker",
+      "name": "Attach to node process",
       "type": "node",
       "request": "attach",
       "port": 9229,
       "address": "127.0.0.1",
-      "localRoot": "${workspaceFolder}/apps/api/src",
-      "remoteRoot": "/",
       "skipFiles": [
         "<node_internals>/**",
         "**/node_modules/**"
@@ -48,7 +46,7 @@
       "name": "Debug both",
       "configurations": [
         "CLI test --local (port 8788)",
-        "Attach to wrangler worker"
+        "Attach to node process"
       ],
       "preLaunchTask": "API dev"
     }

@@ -84,16 +84,46 @@ export const packageRouter = $.createApp()
 			return c.json(publishedPackage);
 		}
 	)
-	.get("/:packageName/-/:tarballName", zValidator("param", validators.getTarball.request.param), async (c) => {
-		const { packageName, tarballName } = c.req.valid("param");
+	.get(
+		"/:packageName/-/:tarballName",
+		zValidator("param", validators.getTarball.request.param),
+		async (c) => {
+			const { packageName, tarballName } = c.req.valid("param");
+			const can = assertTokenAccess(c.get("token"));
+
+			if (!can("read", "package", packageName)) throw HttpError.forbidden();
+
+			const tarball = await packageService.getPackageTarball(packageName, tarballName);
+
+			return new Response(tarball.body, {
+				headers: { "Content-Type": "application/gzip" }
+			});
+		}
+	)
+	.get("/:packageScope/:packageName/-/*", async (c) => {
+		const path: string = c.req.path
+
+		const lastSlashIndex: number = path.lastIndexOf('/')
+		const secondLastSlashIndex: number = path.lastIndexOf('/', lastSlashIndex - 1)
+		const tarballStart: number = secondLastSlashIndex + 1
+		const tarballEnd: number = path.length
+		const tarballName = path.substring(tarballStart, tarballEnd).replace('/', '-').replace('@', '')
+
+		console.debug('tarballDef:', tarballName)
+
+		const packageScope = c.req.param("packageScope");
+		const packageName = c.req.param("packageName");
+
+		const fullName = `${packageScope}/${packageName}`;
 		const can = assertTokenAccess(c.get("token"));
 
-		if (!can("read", "package", packageName)) throw HttpError.forbidden();
+		if (!can("read", "package", fullName)) throw HttpError.forbidden();
 
-		const tarball = await packageService.getPackageTarball(packageName, tarballName);
+		if (!tarballName) throw HttpError.badRequest("Missing tarball name");
+		const tarball = await packageService.getPackageTarball(fullName, tarballName);
 
 		return new Response(tarball.body, {
-			headers: { "Content-Type": "application/json" }
+			headers: { "Content-Type": "application/gzip" }
 		});
 	})
 	.put(

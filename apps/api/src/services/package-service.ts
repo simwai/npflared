@@ -52,26 +52,12 @@ export const packageService = {
 			throw HttpError.conflict("Version already exists");
 		}
 
-		const attachmentName = Object.keys(packageData._attachments ?? {}).at(0);
-		if (!attachmentName) {
-			throw HttpError.badRequest("No attachment");
-		}
-
-		const scopedSafeName = packageName.replace("@", "").replace("/", "-");
-		const expectedAttachmentName = `${scopedSafeName}-${versionToUpload}.tgz`;
-
-		if (attachmentName !== expectedAttachmentName) {
-			throw HttpError.badRequest("Attachment name does not match");
-		}
-
-		if (!packageData.versions[versionToUpload]?.dist.tarball?.endsWith(`${packageName}/-/${expectedAttachmentName}`)) {
-			throw HttpError.badRequest("Attachment name does not match");
-		}
-
 		const attachment = Object.values(packageData._attachments ?? {}).at(0);
 		if (!attachment) {
 			throw HttpError.badRequest("No attachment");
 		}
+
+		const tarballFileName = `${packageName.replace("@", "").replace("/", "-")}-${versionToUpload}.tgz`;
 
 		const now = Date.now();
 
@@ -108,7 +94,7 @@ export const packageService = {
 
 		base64ToReadableStream(attachment.data).pipeTo(uploadStream.writable);
 
-		await env.BUCKET.put(attachmentName, uploadStream.readable, {
+		await env.BUCKET.put(tarballFileName, uploadStream.readable, {
 			httpMetadata: { contentType: "application/gzip" },
 			customMetadata: { package: packageName, version: versionToUpload }
 		});
@@ -126,8 +112,8 @@ export const packageService = {
 			throw HttpError.internalServerError("Storage bucket not configured");
 		}
 
-		// tarballName is already the exact R2 key e.g. "@scope/name-1.0.0.tgz"
-		const packageTarball = await bucket.get(tarballName);
+		const r2Key = tarballName.replace("@", "").replace("/", "-");
+		const packageTarball = await bucket.get(r2Key);
 
 		if (!packageTarball) {
 			throw HttpError.notFound(`Tarball not found: ${tarballName}`);

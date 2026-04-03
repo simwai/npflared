@@ -7,10 +7,11 @@
 	},
 	"scripts": {
 		"dev": "wrangler dev",
-		"deploy": "wrangler deploy --minify",
+		"deploy": "wrangler deploy --minify --config wrangler.toml",
+		"tail": "wrangler tail --config wrangler.toml",
 		"generate-migrations": "drizzle-kit generate",
-		"migrate:local": "npx wrangler d1 migrations apply DB",
-		"migrate:prod": "npx wrangler d1 migrations apply DB --remote",
+		"migrate:local": "wrangler d1 migrations apply DB",
+		"migrate:prod": "wrangler d1 migrations apply DB --remote",
 		"test:watch": "vitest watch",
 		"test:single": "vitest run",
 		"check-types": "tsc --noEmit"
@@ -22,14 +23,15 @@
 		"hono": "^4.11.3",
 		"hono-openapi": "^1.1.2",
 		"micromatch": "^4.0.8",
-		"zod": "^4.3.5",
-		"semver": "^7.7.4"
+		"semver": "^7.7.4",
+		"typescript": "5.9.3",
+		"zod": "^4.3.5"
 	},
 	"devDependencies": {
-		"@types/semver": "^7.7.1",
 		"@cloudflare/vitest-pool-workers": "^0.12.1",
 		"@types/micromatch": "^4.0.10",
 		"@types/node": "^25.0.6",
+		"@types/semver": "^7.7.1",
 		"drizzle-kit": "^0.31.4",
 		"vitest": "3.2.4",
 		"wrangler": "^4.58.0"
