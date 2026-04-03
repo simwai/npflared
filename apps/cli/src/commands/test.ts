@@ -29,10 +29,16 @@ type PublishedPackage = {
 	version: string;
 };
 
+type PublishedSet = {
+	dependency: PublishedPackage;
+	main: PublishedPackage;
+};
+
 async function writeScopedNpmrc(dir: string, cfg: RegistryConfig) {
 	const npmrc = [
 		`${cfg.testScope}:registry=${cfg.registryBase}`,
 		`//${cfg.registryHost}/:_authToken=${cfg.testToken}`,
+		`//${cfg.registryHost}/:always-auth=true`,
 		""
 	].join("\n");
 
@@ -48,58 +54,88 @@ async function writeScopedNpmrc(dir: string, cfg: RegistryConfig) {
 	);
 }
 
-async function createAndPublishTestPackage(publishTmpDir: string, cfg: RegistryConfig): Promise<PublishedPackage> {
-	await $({ cwd: publishTmpDir })`pnpm init --bare`;
+async function initPackage(dir: string) {
+	await $({ cwd: dir })`pnpm init --bare`;
+}
 
-	const pkgJsonPath = join(publishTmpDir, "package.json");
-	const pkg = JSON.parse(await readFile(pkgJsonPath, "utf-8")) as {
-		name?: string;
-		version?: string;
-		publishConfig?: { access: string; registry: string };
-	};
+async function createPackage(
+	dir: string,
+	cfg: RegistryConfig,
+	name: string,
+	version: string,
+	dependencies?: Record<string, string>
+) {
+	await initPackage(dir);
 
-	if (!pkg.name || typeof pkg.name !== "string") {
-		pkg.name = `${cfg.testScope}/test-package`;
-	}
+	const pkgJsonPath = join(dir, "package.json");
+	const pkg = JSON.parse(await readFile(pkgJsonPath, "utf-8")) as Record<string, unknown>;
 
-	const uniqueVersion = `0.0.0-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-	pkg.version = uniqueVersion;
-
-	const bareName = pkg.name.replace(/^@[^/]+\//, "");
-	pkg.name = `${cfg.testScope}/${bareName}`;
-
+	pkg.name = name;
+	pkg.version = version;
+	pkg.private = false;
 	pkg.publishConfig = {
 		access: "public",
-		registry: cfg.deployedUrl
+		registry: cfg.registryBase
 	};
 
-	log.info(
-		chalk.cyan(
-			`Test package:\n  name: ${pkg.name}\n  version: ${pkg.version}\n  registry: ${pkg.publishConfig.registry}`
-		)
-	);
-
-	await writeFile(pkgJsonPath, JSON.stringify(pkg, null, 2), "utf-8");
-	await writeFile(join(publishTmpDir, "index.js"), "// index.js\n", "utf-8");
-
-	await writeScopedNpmrc(publishTmpDir, cfg);
-
-	cliSpinner.start("Publishing test package...");
-	try {
-		await $({ quiet: true, cwd: publishTmpDir })`pnpm publish --access public`;
-		cliSpinner.stop("Successfully published test package");
-	} catch (publishErr) {
-		cliSpinner.stop(chalk.red(`Failed to publish: ${publishErr}`));
-		throw publishErr;
+	if (dependencies && Object.keys(dependencies).length > 0) {
+		pkg.dependencies = dependencies;
 	}
 
+	await writeFile(pkgJsonPath, JSON.stringify(pkg, null, 2), "utf-8");
+
+	const jsBody =
+		name.endsWith("/test-dep")
+			? `module.exports = { value: "dep-ok" };\n`
+			: `module.exports = { value: "main-ok" };\n`;
+
+	await writeFile(join(dir, "index.js"), jsBody, "utf-8");
+	await writeScopedNpmrc(dir, cfg);
+}
+
+async function publishPackage(dir: string, label: string) {
+	cliSpinner.start(`Publishing ${label}...`);
+	try {
+		await $({ quiet: true, cwd: dir })`pnpm publish --access public`;
+		cliSpinner.stop(`Published ${label}`);
+	} catch (err) {
+		cliSpinner.stop(chalk.red(`Failed to publish ${label}: ${err}`));
+		throw err;
+	}
+}
+
+async function createAndPublishTestPackages(baseTmpDir: string, cfg: RegistryConfig): Promise<PublishedSet> {
+	const dependencyDir = join(baseTmpDir, "dep");
+	const mainDir = join(baseTmpDir, "main");
+
+	await $({ cwd: baseTmpDir })`mkdir dep`;
+	await $({ cwd: baseTmpDir })`mkdir main`;
+
+	const version = `0.0.0-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+	const dependencyName = `${cfg.testScope}/test-dep`;
+	const mainName = `${cfg.testScope}/test-package`;
+
+	await createPackage(dependencyDir, cfg, dependencyName, version);
+	await publishPackage(dependencyDir, dependencyName);
+
+	await createPackage(mainDir, cfg, mainName, version, {
+		[dependencyName]: version
+	});
+	await publishPackage(mainDir, mainName);
+
 	return {
-		name: pkg.name,
-		version: pkg.version
+		dependency: {
+			name: dependencyName,
+			version
+		},
+		main: {
+			name: mainName,
+			version
+		}
 	};
 }
 
-async function runSmokeTest(cfg: RegistryConfig): Promise<PublishedPackage> {
+async function runSmokeTest(cfg: RegistryConfig): Promise<PublishedSet> {
 	const publishTmpDir = await mkdtemp(join(tmpdir(), "npflared-publish-"));
 	const installTmpDir = await mkdtemp(join(tmpdir(), "npflared-install-"));
 
@@ -113,16 +149,25 @@ async function runSmokeTest(cfg: RegistryConfig): Promise<PublishedPackage> {
 	};
 
 	try {
-		const published = await createAndPublishTestPackage(publishTmpDir, cfg);
+		const published = await createAndPublishTestPackages(publishTmpDir, cfg);
 
-		await $({ cwd: installTmpDir })`pnpm init --bare`;
+		await initPackage(installTmpDir);
 		await writeScopedNpmrc(installTmpDir, cfg);
 
-		log.info(chalk.cyan(`Smoke install:\n  spec: ${published.name}@${published.version}\n  from: ${cfg.registryBase}`));
+		log.info(
+			chalk.cyan(
+				[
+					"Smoke install:",
+					`  spec: ${published.main.name}@${published.main.version}`,
+					`  implicit dependency: ${published.dependency.name}@${published.dependency.version}`,
+					`  from: ${cfg.registryBase}`
+				].join("\n")
+			)
+		);
 
-		cliSpinner.start("Smoke: installing exact version...");
-		await $({ quiet: true, cwd: installTmpDir })`pnpm add ${published.name}@${published.version}`;
-		cliSpinner.stop("Smoke: successfully installed exact version");
+		cliSpinner.start("Smoke: installing main package with private dependency...");
+		await $({ quiet: true, cwd: installTmpDir })`pnpm add ${published.main.name}@${published.main.version}`;
+		cliSpinner.stop("Smoke: successfully installed main package and dependency");
 
 		cleanup();
 		return published;
@@ -133,7 +178,7 @@ async function runSmokeTest(cfg: RegistryConfig): Promise<PublishedPackage> {
 	}
 }
 
-async function runCompatTests(cfg: RegistryConfig, published: PublishedPackage) {
+async function runCompatTests(cfg: RegistryConfig, published: PublishedSet) {
 	const compatDir = await mkdtemp(join(tmpdir(), "npflared-compat-"));
 
 	const cleanup = () => {
@@ -143,17 +188,29 @@ async function runCompatTests(cfg: RegistryConfig, published: PublishedPackage) 
 	};
 
 	try {
-		await $({ cwd: compatDir })`pnpm init --bare`;
+		await initPackage(compatDir);
 		await writeScopedNpmrc(compatDir, cfg);
 
-		log.info(chalk.cyan(`Compat metadata check:\n  package: ${published.name}`));
+		log.info(
+			chalk.cyan(
+				[
+					"Compat metadata check:",
+					`  main: ${published.main.name}`,
+					`  dep: ${published.dependency.name}`
+				].join("\n")
+			)
+		);
 
-		cliSpinner.start("Compat: pnpm view metadata...");
-		await $({ quiet: true, cwd: compatDir })`pnpm view ${published.name} --json`;
-		cliSpinner.stop("Compat: metadata fetch succeeded");
+		cliSpinner.start("Compat: pnpm view main metadata...");
+		await $({ quiet: true, cwd: compatDir })`pnpm view ${published.main.name} --json`;
+		cliSpinner.stop("Compat: main metadata fetch succeeded");
+
+		cliSpinner.start("Compat: pnpm view dependency metadata...");
+		await $({ quiet: true, cwd: compatDir })`pnpm view ${published.dependency.name} --json`;
+		cliSpinner.stop("Compat: dependency metadata fetch succeeded");
 
 		cliSpinner.start("Compat: pnpm add without explicit version...");
-		await $({ quiet: true, cwd: compatDir })`pnpm add ${published.name}`;
+		await $({ quiet: true, cwd: compatDir })`pnpm add ${published.main.name}`;
 		cliSpinner.stop("Compat: unpinned add succeeded");
 
 		const fixtureDir = join(compatDir, "fixture");
@@ -167,7 +224,7 @@ async function runCompatTests(cfg: RegistryConfig, published: PublishedPackage) 
 					version: "0.0.0",
 					private: true,
 					dependencies: {
-						[published.name]: published.version,
+						[published.main.name]: published.main.version,
 						chalk: "^5.4.1"
 					}
 				},
@@ -212,7 +269,7 @@ export const test = async ({ local = false, port = 8787 }: TestOptions = {}) => 
 		deployedUrl = urlInput;
 	}
 
-	const testScope = await text({
+	const testScopeInput = await text({
 		message: "Enter test scope (default: @npflared-test):",
 		initialValue: "@npflared-test",
 		validate(value) {
@@ -223,19 +280,21 @@ export const test = async ({ local = false, port = 8787 }: TestOptions = {}) => 
 		}
 	});
 
-	if (isCancel(testScope)) process.exit(1);
+	if (isCancel(testScopeInput)) process.exit(1);
+	const testScope = testScopeInput;
 
 	const url = new URL(deployedUrl);
 	const registryHost = url.host;
 	const registryBase = deployedUrl.replace(/\/$/, "");
 
-	const placeholderPkgName = `${testScope}/test-package`;
+	const depPkgName = `${testScope}/test-dep`;
+	const mainPkgName = `${testScope}/test-package`;
 	const scopeType: TokenScopeType = "package:read+write";
-	const tokenLabel = `cli-test-${placeholderPkgName}`;
+	const tokenLabel = `cli-test-${testScope.replace(/^@/, "")}`;
 
-	log.info("Minting test token...");
+	log.info("Minting multi-package test token...");
 	const testToken = await createTokenProgrammatically({
-		pkgName: placeholderPkgName,
+		packageNames: [depPkgName, mainPkgName],
 		scopeType,
 		tokenLabel,
 		local
@@ -256,19 +315,21 @@ export const test = async ({ local = false, port = 8787 }: TestOptions = {}) => 
 	log.info(
 		chalk.green(
 			dedent`
-        ✅ Full registry test passed!
-        📦 Published and installed test package successfully using:
-          - Minted test token: ${chalk.bold.white(`${testToken.slice(0, 8)}...`)}
-          - Worker URL: ${chalk.bold.white(deployedUrl)}${local ? " (local)" : ""}
-          - Test scope: ${chalk.bold.white(testScope)}
-          - Package: ${chalk.bold.white(`${published.name}@${published.version}`)}
-          - Checks:
-            - publish
-            - smoke install with exact version
-            - metadata lookup via pnpm view
-            - unpinned add
-            - fixture pnpm install
-      `
+				✅ Full registry test passed!
+				📦 Published and installed multi-package test setup successfully using:
+				  - Minted test token: ${chalk.bold.white(`${testToken.slice(0, 8)}...`)}
+				  - Worker URL: ${chalk.bold.white(deployedUrl)}${local ? " (local)" : ""}
+				  - Test scope: ${chalk.bold.white(testScope)}
+				  - Main package: ${chalk.bold.white(`${published.main.name}@${published.main.version}`)}
+				  - Dependency package: ${chalk.bold.white(`${published.dependency.name}@${published.dependency.version}`)}
+				  - Checks:
+				    - publish dependency
+				    - publish main package depending on private dependency
+				    - smoke install with transitive private dependency
+				    - metadata lookup via pnpm view
+				    - unpinned add
+				    - fixture pnpm install
+			`
 		)
 	);
 };

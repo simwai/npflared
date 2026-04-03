@@ -266,7 +266,7 @@ export async function executeD1<TRow = unknown, TSchema extends z.ZodTypeAny = z
 
 	const wantRows = "rows" in options && options.rows === true;
 	const wantJson = wantRows || ("json" in options && Boolean(options.json) === true);
-	const forceFile = useFile || sql.length > 8000;
+	const forceFile = useFile || sql.length > 8000 || /[\r\n]/.test(sql);
 
 	let args: string[];
 

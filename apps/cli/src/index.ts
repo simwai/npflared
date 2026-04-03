@@ -4,7 +4,17 @@ import { install } from "./commands/install";
 import { test } from "./commands/test";
 import { tokenCommands } from "./commands/token";
 
-yargs(hideBin(process.argv))
+process.on("uncaughtException", (error) => {
+	console.error(error);
+	process.exitCode = 1;
+});
+
+process.on("unhandledRejection", (error) => {
+	console.error(error);
+	process.exitCode = 1;
+});
+
+await yargs(hideBin(process.argv))
 	.scriptName("npflared")
 	.fail(false)
 	.command(
@@ -43,6 +53,4 @@ yargs(hideBin(process.argv))
 	.help("help")
 	.alias("help", "h")
 	.showHelpOnFail(true)
-	.parse();
-
-process.on("uncaughtException", console.error);
+	.parseAsync();

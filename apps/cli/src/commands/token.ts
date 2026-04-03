@@ -31,7 +31,7 @@ type PackagePerms = {
 	types: string[];
 };
 
-type CreateTokenArgs = { package?: string; mode?: TokenScopeType; name?: string; local: boolean };
+type CreateTokenArgs = { packages?: string[]; mode?: TokenScopeType; name?: string; local: boolean };
 type ClearTokensArgs = { package?: string; local: boolean };
 type RemoveTokenArgs = { token?: string; local: boolean };
 type ListTokensArgs = { package?: string; local: boolean };
@@ -78,10 +78,10 @@ const fmtPerm = (p: PackagePerms): string => {
 const renderLegend = () => {
 	log.info(
 		chalk.gray("Legend: ") +
-			`${chalk.green("R/W")} read+write  ` +
-			`${chalk.cyan("R")} read/install  ` +
-			`${chalk.yellow("W")} write/publish  ` +
-			`${chalk.dim("·")} no access`
+		`${chalk.green("R/W")} read+write  ` +
+		`${chalk.cyan("R")} read/install  ` +
+		`${chalk.yellow("W")} write/publish  ` +
+		`${chalk.dim("·")} no access`
 	);
 };
 
@@ -134,6 +134,12 @@ const ensureCloudflareAccount = async (): Promise<string> => {
 	return accountId;
 };
 
+const ensureRemoteCloudflareAccount = async (local: boolean) => {
+	if (!local) {
+		await ensureCloudflareAccount();
+	}
+};
+
 const validateScopedPackageName = (value?: string): string | undefined => {
 	const v = value?.trim();
 
@@ -147,8 +153,44 @@ const validateScopedPackageName = (value?: string): string | undefined => {
 	return undefined;
 };
 
-const buildScopesJson = (scopeType: TokenScopeType, pkgName: string) =>
-	JSON.stringify([{ type: scopeType, values: [pkgName] }]);
+const parsePackageList = (value?: string | string[]): string[] => {
+	const rawValues = Array.isArray(value) ? value : [value ?? ""];
+	return Array.from(
+		new Set(
+			rawValues
+				.flatMap((v) => v.split(","))
+				.map((v) => v.trim())
+				.filter(Boolean)
+		)
+	);
+};
+
+const validatePackageList = (values?: string[]): string | undefined => {
+	if (!values?.length) return "Please enter at least one package.";
+
+	for (const pkg of values) {
+		const error = validateScopedPackageName(pkg);
+		if (error) return `${pkg}: ${error}`;
+	}
+
+	return undefined;
+};
+
+const promptPackageNames = async (): Promise<string[]> => {
+	const value = await text({
+		message: "Package names (comma-separated, e.g. @scope/a, @scope/b):",
+		validate(v) {
+			return validatePackageList(parsePackageList(v));
+		}
+	});
+
+	if (isCancel(value)) process.exit(1);
+
+	return parsePackageList(value);
+};
+
+const buildScopesJson = (scopeType: TokenScopeType, packageNames: string[]) =>
+	JSON.stringify([{ type: scopeType, values: packageNames }]);
 
 const promptPackageName = async (): Promise<string> => {
 	const pkg = await text({
@@ -198,10 +240,13 @@ const promptScopeMode = async (): Promise<TokenScopeType> => {
 	return mode;
 };
 
-const promptTokenName = async (pkgName: string): Promise<string> => {
+const promptTokenName = async (packageNames: string[]): Promise<string> => {
+	const initialValue =
+		packageNames.length === 1 ? `${packageNames[0]}-token` : `${packageNames[0].split("/")[0]}-multi-package-token`;
+
 	const name = await text({
 		message: "Token label (for your reference):",
-		initialValue: `${pkgName}-token`,
+		initialValue,
 		validate(v) {
 			if (!v?.trim()) return "Please enter a label.";
 		}
@@ -211,23 +256,20 @@ const promptTokenName = async (pkgName: string): Promise<string> => {
 };
 
 export const createTokenProgrammatically = async (options: {
-	pkgName: string;
+	packageNames: string[];
 	scopeType: TokenScopeType;
 	tokenLabel: string;
 	local: boolean;
 }): Promise<string> => {
-	if (!options.local) await ensureCloudflareAccount();
-
-	const { pkgName, scopeType, tokenLabel, local } = options;
-	const rawToken = randomUUID();
-	const tokenValue = encodeBase32(rawToken).toLowerCase();
-	const scopesJson = buildScopesJson(scopeType, pkgName).replace(/'/g, "''");
+	const { packageNames, scopeType, tokenLabel, local } = options;
+	const tokenValue = encodeBase32(randomUUID()).toLowerCase();
+	const scopesJson = buildScopesJson(scopeType, packageNames).replace(/'/g, "''");
 	const nowSql = "strftime('%s','now')";
 
 	await executeD1(
 		`INSERT INTO token (token, name, scopes, created_at, updated_at)
-     VALUES ('${tokenValue}', '${tokenLabel.replace(/'/g, "''")}', '${scopesJson}', ${nowSql}, ${nowSql});`,
-		{ local, cwd: apiCwd }
+VALUES ('${tokenValue}', '${tokenLabel.replace(/'/g, "''")}', '${scopesJson}', ${nowSql}, ${nowSql});`,
+		{ local, cwd: apiCwd, useFile: true }
 	);
 
 	return tokenValue;
@@ -235,69 +277,87 @@ export const createTokenProgrammatically = async (options: {
 
 const createToken = async (args: CreateTokenArgs) => {
 	intro(chalk.bold(`npflared  token add  ${chalk.gray(args.local ? "local" : "remote")}`));
-	await ensureCloudflareAccount();
+	await ensureRemoteCloudflareAccount(args.local);
 
-	const packageName = args.package ?? (await promptPackageName());
+	const packageNames = args.packages?.length ? args.packages : await promptPackageNames();
 	const scopeType = args.mode ?? (await promptScopeMode());
-	const tokenLabel = args.name ?? (await promptTokenName(packageName));
+	const tokenLabel = args.name ?? (await promptTokenName(packageNames));
 
-	cliSpinner.start("Creating token…");
-	const tokenValue = await createTokenProgrammatically({
-		pkgName: packageName,
-		scopeType,
-		tokenLabel,
-		local: args.local
-	});
-	cliSpinner.stop("Token created.");
+	try {
+		cliSpinner.start("Creating token…");
+		const tokenValue = await createTokenProgrammatically({
+			packageNames,
+			scopeType,
+			tokenLabel,
+			local: args.local
+		});
+		cliSpinner.stop("Token created.");
 
-	log.success(
-		[
-			"",
-			`  Token    ${chalk.bold.white(tokenValue)}`,
-			`  Package  ${chalk.bold.white(packageName)}`,
-			`  Mode     ${chalk.bold.white(scopeType)}`,
-			`  Target   ${chalk.bold.white(args.local ? "local D1" : "remote D1")}`,
-			"",
-			chalk.gray("Add to .npmrc:"),
-			chalk.gray(`  @babadeluxe:registry=https://your-npflared-url`),
-			chalk.gray(`  //your-npflared-url/:_authToken=${tokenValue}`),
-			""
-		].join("\n")
-	);
+		log.success(
+			[
+				"",
+				`  Token     ${chalk.bold.white(tokenValue)}`,
+				`  Packages  ${chalk.bold.white(String(packageNames.length))}`,
+				`  Mode      ${chalk.bold.white(scopeType)}`,
+				`  Label     ${chalk.bold.white(tokenLabel)}`,
+				`  Target    ${chalk.bold.white(args.local ? "local D1" : "remote D1")}`,
+				"",
+				...packageNames.map((pkg) => `  - ${chalk.white(pkg)}`),
+				"",
+				chalk.gray("Add to .npmrc:"),
+				chalk.gray(`  @babadeluxe:registry=https://your-npflared-url`),
+				chalk.gray(`  //your-npflared-url/:_authToken=${tokenValue}`),
+				""
+			].join("\n")
+		);
 
-	outro("Done.");
+		outro("Done.");
+	} catch (error) {
+		cliSpinner.stop("Token creation failed.");
+		throw error;
+	}
 };
 
 const clearTokensForPackage = async (args: ClearTokensArgs) => {
 	intro(chalk.bold(`npflared  token clear  ${chalk.gray(args.local ? "local" : "remote")}`));
-	await ensureCloudflareAccount();
+	await ensureRemoteCloudflareAccount(args.local);
 
 	const packageName = args.package ?? (await promptPackageName());
 
-	cliSpinner.start(`Deleting tokens for ${chalk.bold(packageName)}…`);
-	await executeD1(`DELETE FROM token WHERE scopes LIKE '%${packageName.replace(/'/g, "''")}%';`, {
-		local: args.local,
-		cwd: apiCwd
-	});
-	cliSpinner.stop("Tokens deleted.");
+	try {
+		cliSpinner.start(`Deleting tokens for ${chalk.bold(packageName)}…`);
+		await executeD1(`DELETE FROM token WHERE scopes LIKE '%${packageName.replace(/'/g, "''")}%';`, {
+			local: args.local,
+			cwd: apiCwd
+		});
+		cliSpinner.stop("Tokens deleted.");
 
-	outro("Done.");
+		outro("Done.");
+	} catch (error) {
+		cliSpinner.stop("Token deletion failed.");
+		throw error;
+	}
 };
 
 const removeTokenByValue = async (args: RemoveTokenArgs) => {
 	intro(chalk.bold(`npflared  token delete  ${chalk.gray(args.local ? "local" : "remote")}`));
-	await ensureCloudflareAccount();
+	await ensureRemoteCloudflareAccount(args.local);
 
 	const tokenValue = args.token ?? (await promptTokenValue());
 
-	cliSpinner.start(`Deleting token ${fmtToken(tokenValue)}…`);
-	await executeD1(`DELETE FROM token WHERE token = '${tokenValue.replace(/'/g, "''")}';`, {
-		local: args.local,
-		cwd: apiCwd
-	});
-	cliSpinner.stop("Token deleted.");
+	try {
+		cliSpinner.start(`Deleting token ${fmtToken(tokenValue)}…`);
+		await executeD1(`DELETE FROM token WHERE token = '${tokenValue.replace(/'/g, "''")}';`, {
+			local: args.local,
+			cwd: apiCwd
+		});
+		cliSpinner.stop("Token deleted.");
 
-	outro("Done.");
+		outro("Done.");
+	} catch (error) {
+		cliSpinner.stop("Token deletion failed.");
+		throw error;
+	}
 };
 
 const listTokensForPackage = async (args: ListTokensArgs) => {
@@ -311,48 +371,53 @@ const listTokensForPackage = async (args: ListTokensArgs) => {
 		return;
 	}
 
-	await ensureCloudflareAccount();
+	await ensureRemoteCloudflareAccount(args.local);
 
-	cliSpinner.start(`Loading tokens for ${chalk.bold(packageName)}…`);
-	const rawRows = await executeD1<TokenRow>(
-		`SELECT token, name, scopes, created_at, updated_at FROM token WHERE scopes LIKE '%${packageName.replace(/'/g, "''")}%';`,
-		{ rows: true, local: args.local, cwd: apiCwd }
-	);
-	const rows = rawRows.filter(isTokenRow);
-	cliSpinner.stop();
+	try {
+		cliSpinner.start(`Loading tokens for ${chalk.bold(packageName)}…`);
+		const rawRows = await executeD1<TokenRow>(
+			`SELECT token, name, scopes, created_at, updated_at FROM token WHERE scopes LIKE '%${packageName.replace(/'/g, "''")}%';`,
+			{ rows: true, local: args.local, cwd: apiCwd }
+		);
+		const rows = rawRows.filter(isTokenRow);
+		cliSpinner.stop();
 
-	if (!rows.length) {
-		log.warn(`No tokens found for ${chalk.bold.white(packageName)}.`);
+		if (!rows.length) {
+			log.warn(`No tokens found for ${chalk.bold.white(packageName)}.`);
+			outro("Done.");
+			return;
+		}
+
+		const tableRows = rows
+			.map((row) => {
+				const perms = resolvePerms(parseScopes(row.scopes), packageName);
+				return { row, perms };
+			})
+			.sort((a, b) => {
+				const weight = (p: PackagePerms) => (p.read && p.write ? 2 : p.write ? 1 : p.read ? 0 : -1);
+				return weight(b.perms) - weight(a.perms);
+			})
+			.map(({ row, perms }) => [
+				chalk.white(fmtToken(row.token)),
+				chalk.gray(row.name || "—"),
+				perms.read ? chalk.green("✔") : chalk.dim("✖"),
+				perms.write ? chalk.green("✔") : chalk.dim("✖"),
+				fmtPerm(perms),
+				chalk.dim(fmtAge(row.created_at))
+			]);
+
+		renderTable(["Token", "Label", "Read", "Write", "Mode", "Created"], tableRows, [32, 28, 6, 6, 6, 10]);
+
+		renderLegend();
+		log.info(
+			chalk.gray(`${rows.length} token(s) for ${chalk.white(packageName)} on ${args.local ? "local" : "remote"} D1`)
+		);
+
 		outro("Done.");
-		return;
+	} catch (error) {
+		cliSpinner.stop("Loading tokens failed.");
+		throw error;
 	}
-
-	const tableRows = rows
-		.map((row) => {
-			const perms = resolvePerms(parseScopes(row.scopes), packageName);
-			return { row, perms };
-		})
-		.sort((a, b) => {
-			const weight = (p: PackagePerms) => (p.read && p.write ? 2 : p.write ? 1 : p.read ? 0 : -1);
-			return weight(b.perms) - weight(a.perms);
-		})
-		.map(({ row, perms }) => [
-			chalk.white(fmtToken(row.token)),
-			chalk.gray(row.name || "—"),
-			perms.read ? chalk.green("✔") : chalk.dim("✖"),
-			perms.write ? chalk.green("✔") : chalk.dim("✖"),
-			fmtPerm(perms),
-			chalk.dim(fmtAge(row.created_at))
-		]);
-
-	renderTable(["Token", "Label", "Read", "Write", "Mode", "Created"], tableRows, [32, 28, 6, 6, 6, 10]);
-
-	renderLegend();
-	log.info(
-		chalk.gray(`${rows.length} token(s) for ${chalk.white(packageName)} on ${args.local ? "local" : "remote"} D1`)
-	);
-
-	outro("Done.");
 };
 
 const listTokensForScope = async (args: ListScopeArgs) => {
@@ -363,153 +428,172 @@ const listTokensForScope = async (args: ListScopeArgs) => {
 	const inputScope = args.scope ?? (await promptScopeName());
 	const scope = inputScope.startsWith("@") ? inputScope : `@${inputScope}`;
 
-	await ensureCloudflareAccount();
+	await ensureRemoteCloudflareAccount(args.local);
 
-	cliSpinner.start(`Loading tokens under ${chalk.bold(scope)}…`);
-	const rawRows = await executeD1<TokenRow>(
-		`SELECT token, name, scopes, created_at, updated_at FROM token WHERE scopes LIKE '%${scope.replace(/'/g, "''")}/%';`,
-		{ rows: true, local: args.local, cwd: apiCwd }
-	);
-	const rows = rawRows.filter(isTokenRow);
-	cliSpinner.stop();
+	try {
+		cliSpinner.start(`Loading tokens under ${chalk.bold(scope)}…`);
+		const rawRows = await executeD1<TokenRow>(
+			`SELECT token, name, scopes, created_at, updated_at FROM token WHERE scopes LIKE '%${scope.replace(/'/g, "''")}/%';`,
+			{ rows: true, local: args.local, cwd: apiCwd }
+		);
+		const rows = rawRows.filter(isTokenRow);
+		cliSpinner.stop();
 
-	if (!rows.length) {
-		log.warn(`No tokens found for scope ${chalk.bold.white(scope)}.`);
-		outro("Done.");
-		return;
-	}
+		if (!rows.length) {
+			log.warn(`No tokens found for scope ${chalk.bold.white(scope)}.`);
+			outro("Done.");
+			return;
+		}
 
-	const allPkgs = Array.from(
-		new Set(
-			rows.flatMap((row) =>
-				parseScopes(row.scopes)
-					.flatMap((s) => s.values)
-					.filter((v) => v.startsWith(`${scope}/`))
+		const allPkgs = Array.from(
+			new Set(
+				rows.flatMap((row) =>
+					parseScopes(row.scopes)
+						.flatMap((s) => s.values)
+						.filter((v) => v.startsWith(`${scope}/`))
+				)
 			)
-		)
-	).sort();
+		).sort();
 
-	if (!allPkgs.length) {
-		log.warn(`Tokens exist but no packages under ${chalk.bold.white(scope)} were found.`);
-		outro("Done.");
-		return;
-	}
+		if (!allPkgs.length) {
+			log.warn(`Tokens exist but no packages under ${chalk.bold.white(scope)} were found.`);
+			outro("Done.");
+			return;
+		}
 
-	const MAX_PKG_COLS = 4;
-	const displayedPkgs = allPkgs.slice(0, MAX_PKG_COLS);
-	const hasMore = allPkgs.length > MAX_PKG_COLS;
+		const MAX_PKG_COLS = 4;
+		const displayedPkgs = allPkgs.slice(0, MAX_PKG_COLS);
+		const hasMore = allPkgs.length > MAX_PKG_COLS;
 
-	const widths = [32, 24, ...displayedPkgs.map(() => 8)];
-	const header = ["Token", "Label", ...displayedPkgs.map((p) => p.replace(`${scope}/`, "").slice(0, 8))];
+		const widths = [32, 24, ...displayedPkgs.map(() => 8)];
+		const header = ["Token", "Label", ...displayedPkgs.map((p) => p.replace(`${scope}/`, "").slice(0, 8))];
 
-	const tableRows = rows.map((row) => {
-		const scopes = parseScopes(row.scopes);
-		return [
-			chalk.white(fmtToken(row.token)),
-			chalk.gray(row.name || "—"),
-			...displayedPkgs.map((pkg) => fmtPerm(resolvePerms(scopes, pkg)))
-		];
-	});
+		const tableRows = rows.map((row) => {
+			const scopes = parseScopes(row.scopes);
+			return [
+				chalk.white(fmtToken(row.token)),
+				chalk.gray(row.name || "—"),
+				...displayedPkgs.map((pkg) => fmtPerm(resolvePerms(scopes, pkg)))
+			];
+		});
 
-	renderTable(header, tableRows, widths);
+		renderTable(header, tableRows, widths);
 
-	renderLegend();
+		renderLegend();
 
-	if (hasMore) {
+		if (hasMore) {
+			log.info(
+				chalk.gray(
+					`Showing ${MAX_PKG_COLS} of ${allPkgs.length} packages. Use ${chalk.white("token list --package <name>")} to inspect one package.`
+				)
+			);
+		}
+
 		log.info(
 			chalk.gray(
-				`Showing ${MAX_PKG_COLS} of ${allPkgs.length} packages. Use ${chalk.white("token list --package <name>")} to inspect one package.`
+				`${rows.length} token(s) · ${allPkgs.length} package(s) · scope ${chalk.white(scope)} · ${args.local ? "local" : "remote"} D1`
 			)
 		);
+
+		outro("Done.");
+	} catch (error) {
+		cliSpinner.stop("Loading scope tokens failed.");
+		throw error;
 	}
-
-	log.info(
-		chalk.gray(
-			`${rows.length} token(s) · ${allPkgs.length} package(s) · scope ${chalk.white(scope)} · ${args.local ? "local" : "remote"} D1`
-		)
-	);
-
-	outro("Done.");
 };
 
 const lookupToken = async (args: LookupTokenArgs) => {
 	intro(chalk.bold(`npflared  token lookup  ${chalk.gray(args.local ? "local" : "remote")}`));
-	await ensureCloudflareAccount();
+	await ensureRemoteCloudflareAccount(args.local);
 
 	const tokenValue = args.token ?? (await promptTokenValue());
 
-	cliSpinner.start(`Looking up token ${fmtToken(tokenValue)}…`);
-	const rawRows = await executeD1<TokenRow>(
-		`SELECT token, name, scopes, created_at, updated_at FROM token WHERE token = '${tokenValue.replace(/'/g, "''")}';`,
-		{ rows: true, local: args.local, cwd: apiCwd }
-	);
-	const row = rawRows.find(isTokenRow);
-	cliSpinner.stop();
+	try {
+		cliSpinner.start(`Looking up token ${fmtToken(tokenValue)}…`);
+		const rawRows = await executeD1<TokenRow>(
+			`SELECT token, name, scopes, created_at, updated_at FROM token WHERE token = '${tokenValue.replace(/'/g, "''")}';`,
+			{ rows: true, local: args.local, cwd: apiCwd }
+		);
+		const row = rawRows.find(isTokenRow);
+		cliSpinner.stop();
 
-	if (!row) {
-		log.error(`Token ${chalk.bold.white(fmtToken(tokenValue))} not found.`);
+		if (!row) {
+			log.error(`Token ${chalk.bold.white(fmtToken(tokenValue))} not found.`);
+			outro("Done.");
+			return;
+		}
+
+		const scopes = parseScopes(row.scopes);
+		const allPkgs = Array.from(new Set(scopes.flatMap((s) => (Array.isArray(s.values) ? s.values : [])))).sort();
+
+		log.info("");
+		log.info(`  ${chalk.bold("Token")}    ${chalk.white(fmtToken(row.token))}`);
+		log.info(`  ${chalk.bold("Label")}    ${chalk.white(row.name || "—")}`);
+		log.info(`  ${chalk.bold("Created")}  ${chalk.gray(fmtAge(row.created_at))}`);
+		log.info(`  ${chalk.bold("Target")}   ${chalk.gray(args.local ? "local D1" : "remote D1")}`);
+
+		if (!allPkgs.length) {
+			log.warn("This token has no package scopes defined.");
+			outro("Done.");
+			return;
+		}
+
+		const tableRows = allPkgs.map((pkg) => {
+			const perms = resolvePerms(scopes, pkg);
+			return [
+				chalk.white(pkg),
+				perms.read ? chalk.green("✔") : chalk.dim("✖"),
+				perms.write ? chalk.green("✔") : chalk.dim("✖"),
+				fmtPerm(perms)
+			];
+		});
+
+		renderTable(["Package", "Read", "Write", "Mode"], tableRows, [36, 6, 6, 6]);
+
+		renderLegend();
+		log.info(chalk.gray(`${allPkgs.length} package scope(s) · token ${chalk.white(row.token)}`));
+
 		outro("Done.");
-		return;
+	} catch (error) {
+		cliSpinner.stop("Token lookup failed.");
+		throw error;
 	}
-
-	const scopes = parseScopes(row.scopes);
-	const allPkgs = Array.from(new Set(scopes.flatMap((s) => (Array.isArray(s.values) ? s.values : [])))).sort();
-
-	log.info("");
-	log.info(`  ${chalk.bold("Token")}    ${chalk.white(fmtToken(row.token))}`);
-	log.info(`  ${chalk.bold("Label")}    ${chalk.white(row.name || "—")}`);
-	log.info(`  ${chalk.bold("Created")}  ${chalk.gray(fmtAge(row.created_at))}`);
-	log.info(`  ${chalk.bold("Target")}   ${chalk.gray(args.local ? "local D1" : "remote D1")}`);
-
-	if (!allPkgs.length) {
-		log.warn("This token has no package scopes defined.");
-		outro("Done.");
-		return;
-	}
-
-	const tableRows = allPkgs.map((pkg) => {
-		const perms = resolvePerms(scopes, pkg);
-		return [
-			chalk.white(pkg),
-			perms.read ? chalk.green("✔") : chalk.dim("✖"),
-			perms.write ? chalk.green("✔") : chalk.dim("✖"),
-			fmtPerm(perms)
-		];
-	});
-
-	renderTable(["Package", "Read", "Write", "Mode"], tableRows, [36, 6, 6, 6]);
-
-	renderLegend();
-	log.info(chalk.gray(`${allPkgs.length} package scope(s) · token ${chalk.white(row.token)}`));
-
-	outro("Done.");
 };
 
 export const tokenCommands: CommandModule = {
 	command: "token <sub>",
-	describe: "Manage npflared tokens (per-package read/write permissions)",
+	describe: "Manage npflared tokens (multi-package read/write permissions)",
 	builder: (yargs: Argv) =>
 		yargs
 			.command(
 				["add", "create"],
-				"Create a new token scoped to a specific package",
+				"Create a new token scoped to one or more packages",
 				(yy) =>
 					yy
-						.option("package", { alias: "p", type: "string", describe: "Package name (e.g. @scope/pkg)" })
+						.option("package", {
+							alias: "p",
+							type: "string",
+							array: true,
+							describe: "Package name(s), repeatable or comma-separated (e.g. -p @scope/a -p @scope/b)"
+						})
 						.check((argv) => {
+							const packages = parsePackageList(argv.package as string[] | string | undefined);
 							if (argv.package) {
-								const error = validateScopedPackageName(argv.package);
+								const error = validatePackageList(packages);
 								if (error) throw new Error(error);
 							}
 							return true;
 						})
-						.option("mode", { alias: "m", choices: ["package:read", "package:write", "package:read+write"] as const })
+						.option("mode", {
+							alias: "m",
+							choices: ["package:read", "package:write", "package:read+write"] as const
+						})
 						.option("name", { alias: "n", type: "string", describe: "Label for this token" })
 						.option("local", { alias: "l", type: "boolean", default: false, describe: "Use local D1" }),
 				async (argv) => {
 					await cliContext.run({ packageManagerAgent: "npm" }, () =>
 						createToken({
-							package: argv.package as string | undefined,
+							packages: parsePackageList(argv.package as string[] | string | undefined),
 							mode: argv.mode as TokenScopeType | undefined,
 							name: argv.name as string | undefined,
 							local: Boolean(argv.local)
@@ -546,16 +630,6 @@ export const tokenCommands: CommandModule = {
 				(yy) =>
 					yy
 						.option("token", { alias: "t", type: "string", describe: "Token value to delete" })
-						.option("package", { alias: "p", type: "string", describe: "Package name (e.g. @scope/pkg)" })
-						.check((argv) => {
-							if (argv.package) {
-								const error = validateScopedPackageName(argv.package);
-								if (error) throw new Error(error);
-							}
-							return true;
-						})
-						.option("mode", { alias: "m", choices: ["package:read", "package:write", "package:read+write"] as const })
-						.option("name", { alias: "n", type: "string", describe: "Label for this token" })
 						.option("local", { alias: "l", type: "boolean", default: false, describe: "Use local D1" }),
 				async (argv) => {
 					await cliContext.run({ packageManagerAgent: "npm" }, () =>
