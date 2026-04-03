@@ -491,14 +491,37 @@ export const tokenCommands: CommandModule = {
 	builder: (yargs: Argv) =>
 		yargs
 			.command(
-				"add",
+				["add", "create"],
 				"Create a new token scoped to a specific package",
 				(yy) =>
 					yy
-						.option("package", { alias: "p", type: "string", describe: "Package name (e.g. @scope/pkg)" })
-						.option("mode", { alias: "m", choices: ["package:read", "package:write", "package:read+write"] as const })
-						.option("name", { alias: "n", type: "string", describe: "Label for this token" })
-						.option("local", { alias: "l", type: "boolean", default: false, describe: "Use local D1" }),
+						.option("package", {
+							alias: "p",
+							type: "string",
+							describe: "Package name (e.g. @scope/pkg)"
+						})
+						.check((argv) => {
+							if (argv.package) {
+								const error = validateScopedPackageName(argv.package);
+								if (error) throw new Error(error);
+							}
+							return true;
+						})
+						.option("mode", {
+							alias: "m",
+							choices: ["package:read", "package:write", "package:read+write"] as const
+						})
+						.option("name", {
+							alias: "n",
+							type: "string",
+							describe: "Label for this token"
+						})
+						.option("local", {
+							alias: "l",
+							type: "boolean",
+							default: false,
+							describe: "Use local D1"
+						}),
 				async (argv) => {
 					await cliContext.run({ packageManagerAgent: "npm" }, () =>
 						createToken({
@@ -515,8 +538,23 @@ export const tokenCommands: CommandModule = {
 				"Delete all tokens that grant access to a given package",
 				(yy) =>
 					yy
-						.option("package", { alias: "p", type: "string" })
-						.option("local", { alias: "l", type: "boolean", default: false }),
+						.option("package", {
+							alias: "p",
+							type: "string",
+							describe: "Full package name (e.g. @scope/pkg)"
+						})
+						.check((argv) => {
+							if (argv.package) {
+								const error = validateScopedPackageName(argv.package);
+								if (error) throw new Error(error);
+							}
+							return true;
+						})
+						.option("local", {
+							alias: "l",
+							type: "boolean",
+							default: false
+						}),
 				async (argv) => {
 					await cliContext.run({ packageManagerAgent: "npm" }, () =>
 						clearTokensForPackage({
@@ -526,34 +564,53 @@ export const tokenCommands: CommandModule = {
 					);
 				}
 			)
-			.command("remove", "Delete a single token by its value", (yy) =>
-				yy
-					.option("package", {
-						alias: "p",
-						type: "string",
-						describe: "Package name (e.g. @scope/pkg)"
-					})
-					.check((argv) => {
-						if (argv.package) {
-							const error = validateScopedPackageName(argv.package);
-							if (error) throw new Error(error);
-						}
-						return true;
-					})
-					.option("mode", {
-						alias: "m",
-						choices: ["package:read", "package:write", "package:read+write"] as const
-					})
-					.option("name", { alias: "n", type: "string", describe: "Label for this token" })
-					.option("local", { alias: "l", type: "boolean", default: false, describe: "Use local D1" })
+			.command(
+				["delete", "remove"],
+				"Delete a single token by its value",
+				(yy) =>
+					yy
+						.option("token", {
+							alias: "t",
+							type: "string",
+							describe: "Token value to delete"
+						})
+						.option("local", {
+							alias: "l",
+							type: "boolean",
+							default: false,
+							describe: "Use local D1"
+						}),
+				async (argv) => {
+					await cliContext.run({ packageManagerAgent: "npm" }, () =>
+						removeTokenByValue({
+							token: argv.token as string | undefined,
+							local: Boolean(argv.local)
+						})
+					);
+				}
 			)
 			.command(
 				"list",
 				"List all tokens that grant access to a specific package",
 				(yy) =>
 					yy
-						.option("package", { alias: "p", type: "string", describe: "Full package name (e.g. @scope/pkg)" })
-						.option("local", { alias: "l", type: "boolean", default: false }),
+						.option("package", {
+							alias: "p",
+							type: "string",
+							describe: "Full package name (e.g. @scope/pkg)"
+						})
+						.check((argv) => {
+							if (argv.package) {
+								const error = validateScopedPackageName(argv.package);
+								if (error) throw new Error(error);
+							}
+							return true;
+						})
+						.option("local", {
+							alias: "l",
+							type: "boolean",
+							default: false
+						}),
 				async (argv) => {
 					await cliContext.run({ packageManagerAgent: "npm" }, () =>
 						listTokensForPackage({
@@ -568,8 +625,16 @@ export const tokenCommands: CommandModule = {
 				"Show a permission matrix for all packages under a scope",
 				(yy) =>
 					yy
-						.option("scope", { alias: "s", type: "string", describe: "Scope (e.g. @babadeluxe)" })
-						.option("local", { alias: "l", type: "boolean", default: false }),
+						.option("scope", {
+							alias: "s",
+							type: "string",
+							describe: "Scope (e.g. @babadeluxe)"
+						})
+						.option("local", {
+							alias: "l",
+							type: "boolean",
+							default: false
+						}),
 				async (argv) => {
 					await cliContext.run({ packageManagerAgent: "npm" }, () =>
 						listTokensForScope({
@@ -584,8 +649,16 @@ export const tokenCommands: CommandModule = {
 				"Inspect a token and show what packages and permissions it has",
 				(yy) =>
 					yy
-						.option("token", { alias: "t", type: "string", describe: "Token value to inspect" })
-						.option("local", { alias: "l", type: "boolean", default: false }),
+						.option("token", {
+							alias: "t",
+							type: "string",
+							describe: "Token value to inspect"
+						})
+						.option("local", {
+							alias: "l",
+							type: "boolean",
+							default: false
+						}),
 				async (argv) => {
 					await cliContext.run({ packageManagerAgent: "npm" }, () =>
 						lookupToken({
