@@ -6,6 +6,7 @@ import { test } from "./commands/test";
 import { tokenCommands } from "./commands/token";
 
 yargs(hideBin(process.argv))
+	.scriptName("npflared")
 	.fail(false)
 	.command(
 		"install",
@@ -40,11 +41,17 @@ yargs(hideBin(process.argv))
 					describe: "Override port in local dev worker URL"
 				}),
 		async (argv) => {
-			await test({ local: argv.local === true, port: typeof argv.port === "number" ? argv.port : undefined });
+			await test({
+				local: argv.local === true,
+				port: typeof argv.port === "number" ? argv.port : undefined
+			});
 		}
 	)
 	.demandCommand(1)
 	.strict()
+	.help("help")
+	.alias("help", "h")
+	.showHelpOnFail(true)
 	.parse();
 
 process.on("uncaughtException", console.error);
