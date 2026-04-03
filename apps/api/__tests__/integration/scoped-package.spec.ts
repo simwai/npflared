@@ -3,6 +3,19 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import packagePublishPayload from "../mocks/package-publish-payload.json";
 import { createToken } from "../utils";
 
+const leafTarballName = (fullName: string, version: string) => {
+	const leaf = fullName.split("/").pop() ?? fullName;
+	return `${leaf}-${version}.tgz`;
+};
+
+const attachmentName = (fullName: string, version: string) => {
+	if (!fullName.startsWith("@")) return `${fullName}-${version}.tgz`;
+	return `${fullName.slice(1).replace("/", "-")}-${version}.tgz`;
+};
+
+const tarballUrl = (fullName: string, version: string) =>
+	`http://localhost:8787/${fullName}/-/${leafTarballName(fullName, version)}`;
+
 describe("scoped package routes", () => {
 	beforeAll(() => {
 		fetchMock.activate();
@@ -45,23 +58,26 @@ describe("scoped package routes", () => {
 		});
 
 		it("should return 403 if token doesn't have access to scoped package in local registry", async () => {
+			const fullName = "@scoped/pkg";
+			const version = "1.0.0";
+
 			const scopedPackagePayload = {
 				...packagePublishPayload,
-				_id: "@scoped/pkg",
-				name: "@scoped/pkg",
+				_id: fullName,
+				name: fullName,
 				versions: {
-					"1.0.0": {
+					[version]: {
 						...packagePublishPayload.versions["1.0.0"],
-						_id: "@scoped/pkg@1.0.0",
-						name: "@scoped/pkg",
+						_id: `${fullName}@${version}`,
+						name: fullName,
 						dist: {
 							...packagePublishPayload.versions["1.0.0"].dist,
-							tarball: "http://localhost:8787/@scoped/pkg/-/@scoped-pkg-1.0.0.tgz"
+							tarball: tarballUrl(fullName, version)
 						}
 					}
 				},
 				_attachments: {
-					"@scoped-pkg-1.0.0.tgz": packagePublishPayload._attachments["mock-1.0.0.tgz"]
+					[attachmentName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
 				}
 			};
 
@@ -70,8 +86,7 @@ describe("scoped package routes", () => {
 				scopes: [{ type: "package:read+write", values: ["*"] }]
 			});
 
-			// Publish scoped package
-			const publishResponse = await SELF.fetch("http://localhost/@scoped/pkg", {
+			const publishResponse = await SELF.fetch(`http://localhost/${fullName}`, {
 				method: "PUT",
 				headers: {
 					"Content-Type": "application/json",
@@ -86,7 +101,7 @@ describe("scoped package routes", () => {
 				scopes: [{ type: "package:read", values: ["something-else"] }]
 			});
 
-			const response = await SELF.fetch("http://localhost/@scoped/pkg", {
+			const response = await SELF.fetch(`http://localhost/${fullName}`, {
 				headers: {
 					Authorization: `Bearer ${userToken}`
 				}
@@ -96,23 +111,26 @@ describe("scoped package routes", () => {
 		});
 
 		it("should allow access if token has access to scoped package in local registry", async () => {
+			const fullName = "@scoped/pkg-ok";
+			const version = "1.0.0";
+
 			const scopedPackagePayload = {
 				...packagePublishPayload,
-				_id: "@scoped/pkg-ok",
-				name: "@scoped/pkg-ok",
+				_id: fullName,
+				name: fullName,
 				versions: {
-					"1.0.0": {
+					[version]: {
 						...packagePublishPayload.versions["1.0.0"],
-						_id: "@scoped/pkg-ok@1.0.0",
-						name: "@scoped/pkg-ok",
+						_id: `${fullName}@${version}`,
+						name: fullName,
 						dist: {
 							...packagePublishPayload.versions["1.0.0"].dist,
-							tarball: "http://localhost:8787/@scoped/pkg-ok/-/@scoped-pkg-ok-1.0.0.tgz"
+							tarball: tarballUrl(fullName, version)
 						}
 					}
 				},
 				_attachments: {
-					"@scoped-pkg-ok-1.0.0.tgz": packagePublishPayload._attachments["mock-1.0.0.tgz"]
+					[attachmentName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
 				}
 			};
 
@@ -121,8 +139,7 @@ describe("scoped package routes", () => {
 				scopes: [{ type: "package:read+write", values: ["*"] }]
 			});
 
-			// Publish scoped package
-			const publishResponse = await SELF.fetch("http://localhost/@scoped/pkg-ok", {
+			const publishResponse = await SELF.fetch(`http://localhost/${fullName}`, {
 				method: "PUT",
 				headers: {
 					"Content-Type": "application/json",
@@ -134,10 +151,10 @@ describe("scoped package routes", () => {
 
 			const { token: userToken } = await createToken({
 				name: "user",
-				scopes: [{ type: "package:read", values: ["@scoped/pkg-ok"] }]
+				scopes: [{ type: "package:read", values: [fullName] }]
 			});
 
-			const response = await SELF.fetch("http://localhost/@scoped/pkg-ok", {
+			const response = await SELF.fetch(`http://localhost/${fullName}`, {
 				headers: {
 					Authorization: `Bearer ${userToken}`
 				}
@@ -146,29 +163,33 @@ describe("scoped package routes", () => {
 			expect(response.status).toBe(200);
 			const body = (await response.json()) as { name: string } | undefined;
 			if (!body) return;
-			expect(body.name).toBe("@scoped/pkg-ok");
+			expect(body.name).toBe(fullName);
 		});
 	});
 
 	describe("GET /:packageScope/:packageName/-/:tarballName", () => {
 		it("should allow downloading a scoped package tarball", async () => {
+			const fullName = "@scoped/pkg-tarball";
+			const version = "1.0.0";
+			const publicTarball = leafTarballName(fullName, version);
+
 			const scopedPackagePayload = {
 				...packagePublishPayload,
-				_id: "@scoped/pkg-tarball",
-				name: "@scoped/pkg-tarball",
+				_id: fullName,
+				name: fullName,
 				versions: {
-					"1.0.0": {
+					[version]: {
 						...packagePublishPayload.versions["1.0.0"],
-						_id: "@scoped/pkg-tarball@1.0.0",
-						name: "@scoped/pkg-tarball",
+						_id: `${fullName}@${version}`,
+						name: fullName,
 						dist: {
 							...packagePublishPayload.versions["1.0.0"].dist,
-							tarball: "http://localhost:8787/@scoped/pkg-tarball/-/@scoped-pkg-tarball-1.0.0.tgz"
+							tarball: tarballUrl(fullName, version)
 						}
 					}
 				},
 				_attachments: {
-					"@scoped-pkg-tarball-1.0.0.tgz": packagePublishPayload._attachments["mock-1.0.0.tgz"]
+					[attachmentName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
 				}
 			};
 
@@ -177,8 +198,7 @@ describe("scoped package routes", () => {
 				scopes: [{ type: "package:read+write", values: ["*"] }]
 			});
 
-			// Publish scoped package
-			const publishResponse = await SELF.fetch("http://localhost/@scoped/pkg-tarball", {
+			const publishResponse = await SELF.fetch(`http://localhost/${fullName}`, {
 				method: "PUT",
 				headers: {
 					"Content-Type": "application/json",
@@ -190,10 +210,10 @@ describe("scoped package routes", () => {
 
 			const { token: userToken } = await createToken({
 				name: "user",
-				scopes: [{ type: "package:read", values: ["@scoped/pkg-tarball"] }]
+				scopes: [{ type: "package:read", values: [fullName] }]
 			});
 
-			const response = await SELF.fetch("http://localhost/@scoped/pkg-tarball/-/@scoped-pkg-tarball-1.0.0.tgz", {
+			const response = await SELF.fetch(`http://localhost/${fullName}/-/${publicTarball}`, {
 				headers: {
 					Authorization: `Bearer ${userToken}`
 				}
@@ -212,27 +232,30 @@ describe("scoped package routes", () => {
 				scopes: [{ type: "package:read+write", values: ["@babadeluxe/*"] }]
 			});
 
+			const fullName = "@babadeluxe/xo-config";
+			const version = "1.0.0";
+
 			const scopedPackagePayload = {
 				...packagePublishPayload,
-				_id: "@babadeluxe/xo-config",
-				name: "@babadeluxe/xo-config",
+				_id: fullName,
+				name: fullName,
 				versions: {
-					"1.0.0": {
+					[version]: {
 						...packagePublishPayload.versions["1.0.0"],
-						_id: "@babadeluxe/xo-config@1.0.0",
-						name: "@babadeluxe/xo-config",
+						_id: `${fullName}@${version}`,
+						name: fullName,
 						dist: {
 							...packagePublishPayload.versions["1.0.0"].dist,
-							tarball: "http://localhost:8787/@babadeluxe/xo-config/-/@babadeluxe-xo-config-1.0.0.tgz"
+							tarball: tarballUrl(fullName, version)
 						}
 					}
 				},
 				_attachments: {
-					"@babadeluxe-xo-config-1.0.0.tgz": packagePublishPayload._attachments["mock-1.0.0.tgz"]
+					[attachmentName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
 				}
 			};
 
-			const response = await SELF.fetch("http://localhost/@babadeluxe/xo-config", {
+			const response = await SELF.fetch(`http://localhost/${fullName}`, {
 				method: "PUT",
 				headers: {
 					"Content-Type": "application/json",
@@ -250,27 +273,30 @@ describe("scoped package routes", () => {
 				scopes: [{ type: "package:read+write", values: ["@babadeluxe**"] }]
 			});
 
+			const fullName = "@babadeluxe/xo-config";
+			const version = "1.0.0";
+
 			const scopedPackagePayload = {
 				...packagePublishPayload,
-				_id: "@babadeluxe/xo-config",
-				name: "@babadeluxe/xo-config",
+				_id: fullName,
+				name: fullName,
 				versions: {
-					"1.0.0": {
+					[version]: {
 						...packagePublishPayload.versions["1.0.0"],
-						_id: "@babadeluxe/xo-config@1.0.0",
-						name: "@babadeluxe/xo-config",
+						_id: `${fullName}@${version}`,
+						name: fullName,
 						dist: {
 							...packagePublishPayload.versions["1.0.0"].dist,
-							tarball: "http://localhost:8787/@babadeluxe/xo-config/-/@babadeluxe-xo-config-1.0.0.tgz"
+							tarball: tarballUrl(fullName, version)
 						}
 					}
 				},
 				_attachments: {
-					"@babadeluxe-xo-config-1.0.0.tgz": packagePublishPayload._attachments["mock-1.0.0.tgz"]
+					[attachmentName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
 				}
 			};
 
-			const response = await SELF.fetch("http://localhost/@babadeluxe/xo-config", {
+			const response = await SELF.fetch(`http://localhost/${fullName}`, {
 				method: "PUT",
 				headers: {
 					"Content-Type": "application/json",

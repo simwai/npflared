@@ -19,21 +19,92 @@ function getTarballFileNameFromUrl(tarballUrl: string) {
 	}
 }
 
-function getValidatedTarballFileName(packageData: PutPackageBody, version: string) {
-	const tarballUrl = packageData.versions[version]?.dist?.tarball;
+function getScopedLeafName(packageName: string) {
+	return packageName.split("/").pop() ?? packageName;
+}
 
+function getAllowedScopedTarballNames(packageName: string, version: string) {
+	const leafName = getScopedLeafName(packageName);
+	const flattenedScoped = `${packageName.slice(1).replace("/", "-")}-${version}.tgz`;
+	const legacyScoped = `${packageName.replace("/", "-")}-${version}.tgz`;
+	const leafTarball = `${leafName}-${version}.tgz`;
+
+	return new Set([leafTarball, flattenedScoped, legacyScoped]);
+}
+
+function getAttachmentMatchCandidates(rawName: string) {
+	const decoded = decodeURIComponent(rawName);
+	const basename = decoded.split("/").pop() ?? decoded;
+	const noAt = decoded.startsWith("@") ? decoded.slice(1) : decoded;
+	const noAtBasename = noAt.split("/").pop() ?? noAt;
+	const flattened = noAt.replace("/", "-");
+	const flattenedLegacy = decoded.replace("/", "-");
+
+	return new Set([
+		rawName,
+		decoded,
+		basename,
+		noAt,
+		noAtBasename,
+		flattened,
+		flattenedLegacy
+	]);
+}
+
+function resolveTarballNames(packageName: string, packageData: PutPackageBody, version: string) {
+	const manifest = packageData.versions[version];
+	if (!manifest) {
+		throw HttpError.badRequest("No versions");
+	}
+
+	const tarballUrl = manifest.dist?.tarball;
 	if (!tarballUrl) {
 		throw HttpError.badRequest("No tarball url");
 	}
 
-	const tarballFileName = getTarballFileNameFromUrl(tarballUrl);
-	const attachments = packageData._attachments ?? {};
+	const publicTarballName = getTarballFileNameFromUrl(tarballUrl);
 
-	if (!tarballFileName || !(tarballFileName in attachments)) {
+	const attachments = packageData._attachments ?? {};
+	const attachmentNames = Object.keys(attachments);
+	if (attachmentNames.length === 0) {
+		throw HttpError.badRequest("No attachment");
+	}
+
+	if (!packageName.startsWith("@")) {
+		if (!attachmentNames.includes(publicTarballName)) {
+			throw HttpError.badRequest("Attachment name does not match");
+		}
+
+		return {
+			manifest,
+			publicTarballName,
+			attachmentName: publicTarballName
+		};
+	}
+
+	const allowedNames = getAllowedScopedTarballNames(packageName, version);
+
+	if (!allowedNames.has(publicTarballName)) {
 		throw HttpError.badRequest("Attachment name does not match");
 	}
 
-	return tarballFileName;
+	const attachmentName = attachmentNames.find((rawName) => {
+		const candidates = getAttachmentMatchCandidates(rawName);
+		for (const candidate of candidates) {
+			if (allowedNames.has(candidate)) return true;
+		}
+		return false;
+	});
+
+	if (!attachmentName) {
+		throw HttpError.badRequest("Attachment name does not match");
+	}
+
+	return {
+		manifest,
+		publicTarballName,
+		attachmentName
+	};
 }
 
 export const packageService = {
@@ -72,16 +143,21 @@ export const packageService = {
 			throw HttpError.badRequest("No versions");
 		}
 
-		const tarballFileName = getValidatedTarballFileName(packageData, versionToUpload);
+		const { manifest, publicTarballName, attachmentName } = resolveTarballNames(
+			packageName,
+			packageData,
+			versionToUpload
+		);
 
-		const attachment = packageData._attachments?.[tarballFileName] as Attachment | undefined;
+		const attachment = packageData._attachments?.[attachmentName] as Attachment | undefined;
 		if (!attachment) {
 			throw HttpError.badRequest("No attachment");
 		}
 
 		const conflictingPackageRelease = await db.query.packageReleaseTable.findFirst({
 			columns: { version: true },
-			where: (table, { eq, and }) => and(eq(table.package, packageName), eq(table.version, versionToUpload))
+			where: (table, { eq, and }) =>
+				and(eq(table.package, packageName), eq(table.version, versionToUpload))
 		});
 
 		if (conflictingPackageRelease) {
@@ -113,7 +189,7 @@ export const packageService = {
 					package: packageName,
 					version: versionToUpload,
 					tag,
-					manifest: packageData.versions[versionToUpload],
+					manifest,
 					createdAt: now
 				})
 				.returning()
@@ -122,7 +198,7 @@ export const packageService = {
 		const uploadStream = new FixedLengthStream(attachment.length);
 		const pipePromise = base64ToReadableStream(attachment.data).pipeTo(uploadStream.writable);
 
-		await env.BUCKET.put(tarballFileName, uploadStream.readable, {
+		await env.BUCKET.put(publicTarballName, uploadStream.readable, {
 			httpMetadata: { contentType: "application/gzip" },
 			customMetadata: { package: packageName, version: versionToUpload }
 		});

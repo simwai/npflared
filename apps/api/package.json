@@ -12,6 +12,7 @@
 		"generate-migrations": "drizzle-kit generate",
 		"migrate:local": "wrangler d1 migrations apply DB --config wrangler.toml",
 		"migrate:prod": "wrangler d1 migrations apply DB --remote --config wrangler.local.toml",
+		"update-types": "wrangler types --config wrangler.toml",
 		"test:watch": "vitest watch",
 		"test:single": "vitest run",
 		"check-types": "tsc --noEmit"
