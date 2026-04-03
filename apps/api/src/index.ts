@@ -1,6 +1,6 @@
 import { Scalar } from "@scalar/hono-api-reference";
 import { Hono } from "hono";
-import { logger } from "hono/logger";
+// import { logger } from "hono/logger";
 import { TrieRouter } from "hono/router/trie-router";
 import { openAPIRouteHandler } from "hono-openapi";
 import { loadToken } from "#middlewares/load-token";
@@ -10,8 +10,8 @@ import { packageRouter } from "./routers/package";
 import { tokenRouter } from "./routers/token";
 
 const app = new Hono<AppEnv>({ router: new TrieRouter() });
-// const app = new Hono<AppEnv>()
-app.use("*", logger());
+
+// app.use("*", logger());
 app.use("*", loadToken);
 
 const routes = app.route("/", tokenRouter).route("/", packageRouter);
