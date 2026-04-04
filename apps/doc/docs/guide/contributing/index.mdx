@@ -30,10 +30,27 @@ Npflared is a monorepo managed with [pnpm](https://pnpm.io/) and [Turbo](https:/
    ```
 
 3. **Local Development**:
-   To start the API in development mode:
+   You can start all applications in development mode from the root:
+   ```bash
+   pnpm dev
+   ```
+   This will run the API, CLI (watch mode), and Documentation site simultaneously using Turbo.
+
+   Alternatively, to start only the API:
    ```bash
    pnpm --filter @npflared/api dev
    ```
+
+## Common Scripts
+
+The following scripts are available at the root level:
+
+- `pnpm dev`: Starts all apps in development mode.
+- `pnpm build`: Builds all apps.
+- `pnpm quality`: Runs all quality checks (linting, type checking, tests).
+- `pnpm test:single`: Runs all tests once.
+- `pnpm check-format`: Checks code formatting with Biome.
+- `pnpm format`: Automatically formats code with Biome.
 
 ## Testing Strategy
 
@@ -71,7 +88,7 @@ pnpm run check-format
 
 1. **Create a branch**: `git checkout -b my-feature`
 2. **Make your changes**: Ensure your code follows the existing style and includes relevant tests.
-3. **Verify**: Run tests and linting.
+3. **Verify**: Run tests and linting (`pnpm quality`).
 4. **Commit**: Use descriptive commit messages.
 5. **Push and PR**: Push your branch and open a PR against the `main` branch.
 
