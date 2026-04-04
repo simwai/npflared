@@ -1,0 +1,96 @@
+# CLI Reference
+
+The Npflared CLI (`@npflared/cli`) is the primary tool for managing your Npflared instance. It handles deployment, token management, and testing.
+
+## Installation & Usage
+
+You don't need to install the CLI globally. You can run it directly using `npx`:
+
+```bash
+npx @npflared/cli <command>
+```
+
+:::info
+Most CLI commands interact directly with your Cloudflare account (via Wrangler) or your D1 database. Ensure you are logged in first:
+```bash
+npx wrangler login
+```
+:::
+
+---
+
+## Commands
+
+### `install`
+The `install` command helps you set up a new Npflared instance on your Cloudflare account. It will:
+1. Clone the Npflared API source code to a local directory (`~/.npflared`).
+2. Guide you through creating or selecting a D1 database and an R2 bucket.
+3. Generate a `wrangler.json` configuration.
+4. Apply database migrations.
+5. Deploy the worker to Cloudflare.
+6. Generate an initial admin token.
+
+```bash
+npx @npflared/cli install
+```
+
+### `token`
+Manage access tokens for your packages. These commands interact directly with the D1 database (local or remote).
+
+#### `token add`
+Create a new token for one or more packages.
+- `--package, -p`: Package name(s). Can be repeated or comma-separated (e.g., `-p @scope/a -p @scope/b`).
+- `--mode, -m`: Permission mode (`package:read`, `package:write`, or `package:read+write`).
+- `--name, -n`: A label for the token.
+- `--local, -l`: Operate on the local D1 database.
+
+#### `token list`
+List all tokens that grant access to a specific package.
+- `--package, -p`: The full package name (e.g., `@scope/pkg`).
+- `--local, -l`: Operate on the local D1 database.
+
+#### `token list-scope`
+Show a permission matrix for all packages under a scope.
+- `--scope, -s`: The scope name (e.g., `@my-scope`).
+- `--local, -l`: Operate on the local D1 database.
+
+#### `token lookup`
+Inspect a token and show what packages and permissions it has.
+- `--token, -t`: The token value to inspect.
+- `--local, -l`: Operate on the local D1 database.
+
+#### `token remove` (alias: `delete`)
+Delete a single token by its value.
+- `--token, -t`: The token value to delete.
+- `--local, -l`: Operate on the local D1 database.
+
+#### `token clear`
+Delete all tokens that grant access to a specific package.
+- `--package, -p`: The package name.
+- `--local, -l`: Operate on the local D1 database.
+
+### `test`
+Verify your Npflared deployment by publishing and installing a dummy test package.
+- `--local`: Use the local development worker URL (`http://127.0.0.1:8787`).
+- `--port`: Override the port for the local worker.
+
+```bash
+npx @npflared/cli test
+```
+
+### `clean`
+Removes the local Npflared directory (`~/.npflared`) containing cloned source code and configurations.
+
+```bash
+npx @npflared/cli clean
+```
+
+---
+
+## Concepts
+
+### Direct Database Interaction
+Unlike the Npflared API, which uses HTTP endpoints, the CLI often interacts **directly** with your Cloudflare D1 database. This allows you to manage tokens even if your API is currently down or misconfigured, provided you have the necessary Cloudflare permissions via Wrangler.
+
+### Local Development (`--local`)
+Many commands support a `--local` flag. This is designed for contributors or users running Npflared locally using `wrangler dev`. When this flag is used, the CLI targets the local D1 instance instead of the production one on Cloudflare.

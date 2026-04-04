@@ -23,7 +23,7 @@ You will need to send a `POST` request to the `/-/npm/v1/tokens` endpoint with t
 }
 ```
 
-You can send has many scopes as you want.
+You can send as many scopes as you want.
 
 | Scope type | Description |
 | --- | --- |
@@ -35,7 +35,10 @@ You can send has many scopes as you want.
 | `token:read+write` | Read and write access to a token |
 
 :::info
-The `values` property is an array of strings. You can use `*` to match all packages or provide exact package names (including scopes, e.g., `@my-scope/my-pkg`).
+The `values` property is an array of strings. You can use:
+- `*` to match all packages.
+- Exact package names (including scopes, e.g., `@my-scope/my-pkg`).
+- Glob patterns (e.g., `@my-scope/*` to match all packages in a scope).
 :::
 
 ## Get all tokens
