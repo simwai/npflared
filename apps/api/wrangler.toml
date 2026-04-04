@@ -6,6 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 FALLBACK_REGISTRY_ENDPOINT = "https://registry.npmjs.org"
 NPM_REGISTRY_URL = "https://registry.npmjs.org"
+DEBUG_ERRORS = false
 
 [[r2_buckets]]
 binding = "BUCKET"

@@ -3,18 +3,18 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import packagePublishPayload from "../mocks/package-publish-payload.json";
 import { createToken } from "../utils";
 
-const leafTarballName = (fullName: string, version: string) => {
+const publicTarballName = (fullName: string, version: string) => {
 	const leaf = fullName.split("/").pop() ?? fullName;
 	return `${leaf}-${version}.tgz`;
 };
 
-const attachmentName = (fullName: string, version: string) => {
+const attachmentTarballName = (fullName: string, version: string) => {
 	if (!fullName.startsWith("@")) return `${fullName}-${version}.tgz`;
-	return `${fullName.slice(1).replace("/", "-")}-${version}.tgz`;
+	return `${fullName.slice(1).replace(/\//g, "-")}-${version}.tgz`;
 };
 
 const tarballUrl = (fullName: string, version: string) =>
-	`http://localhost:8787/${fullName}/-/${leafTarballName(fullName, version)}`;
+	`http://localhost:8787/${fullName}/-/${publicTarballName(fullName, version)}`;
 
 describe("scoped package routes", () => {
 	beforeAll(() => {
@@ -77,7 +77,7 @@ describe("scoped package routes", () => {
 					}
 				},
 				_attachments: {
-					[attachmentName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
+					[attachmentTarballName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
 				}
 			};
 
@@ -130,7 +130,7 @@ describe("scoped package routes", () => {
 					}
 				},
 				_attachments: {
-					[attachmentName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
+					[attachmentTarballName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
 				}
 			};
 
@@ -171,7 +171,7 @@ describe("scoped package routes", () => {
 		it("should allow downloading a scoped package tarball", async () => {
 			const fullName = "@scoped/pkg-tarball";
 			const version = "1.0.0";
-			const publicTarball = leafTarballName(fullName, version);
+			const publicName = publicTarballName(fullName, version);
 
 			const scopedPackagePayload = {
 				...packagePublishPayload,
@@ -189,7 +189,7 @@ describe("scoped package routes", () => {
 					}
 				},
 				_attachments: {
-					[attachmentName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
+					[attachmentTarballName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
 				}
 			};
 
@@ -213,7 +213,7 @@ describe("scoped package routes", () => {
 				scopes: [{ type: "package:read", values: [fullName] }]
 			});
 
-			const response = await SELF.fetch(`http://localhost/${fullName}/-/${publicTarball}`, {
+			const response = await SELF.fetch(`http://localhost/${fullName}/-/${publicName}`, {
 				headers: {
 					Authorization: `Bearer ${userToken}`
 				}
@@ -251,7 +251,7 @@ describe("scoped package routes", () => {
 					}
 				},
 				_attachments: {
-					[attachmentName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
+					[attachmentTarballName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
 				}
 			};
 
@@ -292,7 +292,7 @@ describe("scoped package routes", () => {
 					}
 				},
 				_attachments: {
-					[attachmentName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
+					[attachmentTarballName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
 				}
 			};
 

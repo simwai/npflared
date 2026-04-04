@@ -10,6 +10,47 @@ import { HttpError } from "#utils/http";
 type PutPackageBody = z.infer<typeof validators.put.request.json>;
 type Attachment = PutPackageBody["_attachments"][string];
 
+type ServiceDebugOptions = {
+	debug?: boolean;
+};
+
+function normalizePackageName(packageName: string) {
+	try {
+		return decodeURIComponent(packageName);
+	} catch {
+		return packageName;
+	}
+}
+
+function safeJson(value: unknown) {
+	try {
+		return JSON.stringify(value, null, 2);
+	} catch {
+		return String(value);
+	}
+}
+
+function withDebugMessage(message: string, details: unknown, debug = false) {
+	if (!debug) return message;
+	return `${message}\n\n--- npflared debug ---\n${safeJson(details)}`;
+}
+
+function badRequest(message: string, details?: unknown, debug = false): never {
+	throw HttpError.badRequest(withDebugMessage(message, details, debug));
+}
+
+function conflict(message: string, details?: unknown, debug = false): never {
+	throw HttpError.conflict(withDebugMessage(message, details, debug));
+}
+
+function internal(message: string, details?: unknown, debug = false): never {
+	throw HttpError.internalServerError(withDebugMessage(message, details, debug));
+}
+
+function notFound(message: string, details?: unknown, debug = false): never {
+	throw HttpError.notFound(withDebugMessage(message, details, debug));
+}
+
 function getTarballFileNameFromUrl(tarballUrl: string) {
 	try {
 		const url = new URL(tarballUrl);
@@ -20,59 +61,163 @@ function getTarballFileNameFromUrl(tarballUrl: string) {
 }
 
 function getScopedLeafName(packageName: string) {
-	return packageName.split("/").pop() ?? packageName;
+	const normalized = normalizePackageName(packageName);
+	return normalized.split("/").pop() ?? normalized;
 }
 
 function getAllowedScopedTarballNames(packageName: string, version: string) {
-	const leafName = getScopedLeafName(packageName);
-	const flattenedScoped = `${packageName.slice(1).replace("/", "-")}-${version}.tgz`;
-	const legacyScoped = `${packageName.replace("/", "-")}-${version}.tgz`;
+	const normalized = normalizePackageName(packageName);
+	const leafName = getScopedLeafName(normalized);
+	const withoutAt = normalized.startsWith("@") ? normalized.slice(1) : normalized;
+
 	const leafTarball = `${leafName}-${version}.tgz`;
+	const flattenedScoped = `${withoutAt.replace(/\//g, "-")}-${version}.tgz`;
+	const legacyScoped = `${normalized.replace(/\//g, "-")}-${version}.tgz`;
 
 	return new Set([leafTarball, flattenedScoped, legacyScoped]);
 }
 
 function getAttachmentMatchCandidates(rawName: string) {
-	const decoded = decodeURIComponent(rawName);
-	const basename = decoded.split("/").pop() ?? decoded;
-	const noAt = decoded.startsWith("@") ? decoded.slice(1) : decoded;
-	const noAtBasename = noAt.split("/").pop() ?? noAt;
-	const flattened = noAt.replace("/", "-");
-	const flattenedLegacy = decoded.replace("/", "-");
+	const out = new Set<string>();
 
-	return new Set([
-		rawName,
-		decoded,
-		basename,
-		noAt,
-		noAtBasename,
-		flattened,
-		flattenedLegacy
-	]);
+	const addCandidateSet = (value: string) => {
+		const decoded = (() => {
+			try {
+				return decodeURIComponent(value);
+			} catch {
+				return value;
+			}
+		})();
+
+		for (const current of [value, decoded]) {
+			const basename = current.split("/").pop() ?? current;
+			const noAt = current.startsWith("@") ? current.slice(1) : current;
+			const noAtBasename = noAt.split("/").pop() ?? noAt;
+			const flattened = noAt.replace(/\//g, "-");
+			const flattenedLegacy = current.replace(/\//g, "-");
+
+			out.add(current);
+			out.add(basename);
+			out.add(noAt);
+			out.add(noAtBasename);
+			out.add(flattened);
+			out.add(flattenedLegacy);
+
+			try {
+				const asUrl = new URL(current);
+				const pathname = decodeURIComponent(asUrl.pathname);
+				const urlBasename = pathname.split("/").pop() ?? pathname;
+				out.add(pathname);
+				out.add(urlBasename);
+			} catch {}
+		}
+	};
+
+	addCandidateSet(rawName);
+
+	return out;
 }
 
-function resolveTarballNames(packageName: string, packageData: PutPackageBody, version: string) {
+function summarizeAttachments(attachments: PutPackageBody["_attachments"] | undefined) {
+	if (!attachments) return [];
+
+	return Object.entries(attachments).map(([name, value]) => ({
+		name,
+		contentType: value.content_type,
+		length: value.length,
+		candidates: [...getAttachmentMatchCandidates(name)]
+	}));
+}
+
+function summarizeVersions(packageData: PutPackageBody) {
+	return Object.entries(packageData.versions ?? {}).map(([version, manifest]) => ({
+		version,
+		name: manifest.name,
+		manifestVersion: manifest.version,
+		tarball: manifest.dist?.tarball
+	}));
+}
+
+function resolveTarballNames(
+	packageName: string,
+	packageData: PutPackageBody,
+	version: string,
+	options: ServiceDebugOptions = {}
+) {
+	const debug = options.debug === true;
+	const normalizedPackageName = normalizePackageName(packageName);
 	const manifest = packageData.versions[version];
+
 	if (!manifest) {
-		throw HttpError.badRequest("No versions");
+		badRequest(
+			"No versions",
+			{
+				packageName,
+				normalizedPackageName,
+				requestedVersion: version,
+				availableVersions: Object.keys(packageData.versions ?? {}),
+				distTags: packageData["dist-tags"]
+			},
+			debug
+		);
 	}
 
 	const tarballUrl = manifest.dist?.tarball;
 	if (!tarballUrl) {
-		throw HttpError.badRequest("No tarball url");
+		badRequest(
+			"No tarball url",
+			{
+				packageName,
+				normalizedPackageName,
+				version,
+				manifest: {
+					_id: manifest._id,
+					name: manifest.name,
+					version: manifest.version,
+					dist: manifest.dist ?? null
+				}
+			},
+			debug
+		);
 	}
 
 	const publicTarballName = getTarballFileNameFromUrl(tarballUrl);
 
 	const attachments = packageData._attachments ?? {};
 	const attachmentNames = Object.keys(attachments);
+
 	if (attachmentNames.length === 0) {
-		throw HttpError.badRequest("No attachment");
+		badRequest(
+			"No attachment",
+			{
+				packageName,
+				normalizedPackageName,
+				version,
+				tarballUrl,
+				publicTarballName,
+				attachmentNames,
+				versions: summarizeVersions(packageData)
+			},
+			debug
+		);
 	}
 
-	if (!packageName.startsWith("@")) {
+	if (!normalizedPackageName.startsWith("@")) {
 		if (!attachmentNames.includes(publicTarballName)) {
-			throw HttpError.badRequest("Attachment name does not match");
+			badRequest(
+				"Attachment name does not match",
+				{
+					mode: "unscoped",
+					packageName,
+					normalizedPackageName,
+					version,
+					tarballUrl,
+					publicTarballName,
+					attachmentNames,
+					attachments: summarizeAttachments(packageData._attachments)
+				},
+				debug
+			);
 		}
 
 		return {
@@ -82,36 +227,80 @@ function resolveTarballNames(packageName: string, packageData: PutPackageBody, v
 		};
 	}
 
-	const allowedNames = getAllowedScopedTarballNames(packageName, version);
+	const allowedNames = [...getAllowedScopedTarballNames(normalizedPackageName, version)];
 
-	if (!allowedNames.has(publicTarballName)) {
-		throw HttpError.badRequest("Attachment name does not match");
+	const directAttachmentMatch = attachmentNames
+		.map((rawName) => {
+			const candidates = [...getAttachmentMatchCandidates(rawName)];
+			return {
+				rawName,
+				candidates,
+				matchedCandidate: candidates.find(
+					(candidate) => candidate === publicTarballName || allowedNames.includes(candidate)
+				)
+			};
+		})
+		.find((entry) => entry.matchedCandidate);
+
+	if (directAttachmentMatch) {
+		return {
+			manifest,
+			publicTarballName,
+			attachmentName: directAttachmentMatch.rawName
+		};
 	}
 
-	const attachmentName = attachmentNames.find((rawName) => {
-		const candidates = getAttachmentMatchCandidates(rawName);
-		for (const candidate of candidates) {
-			if (allowedNames.has(candidate)) return true;
+	if (attachmentNames.length === 1) {
+		const onlyAttachmentName = attachmentNames[0];
+
+		if (!onlyAttachmentName) {
+			badRequest(
+				"No attachment",
+				{
+					packageName,
+					normalizedPackageName,
+					version,
+					tarballUrl,
+					publicTarballName,
+					attachmentNames
+				},
+				debug
+			);
 		}
-		return false;
-	});
 
-	if (!attachmentName) {
-		throw HttpError.badRequest("Attachment name does not match");
+		return {
+			manifest,
+			publicTarballName,
+			attachmentName: onlyAttachmentName
+		};
 	}
 
-	return {
-		manifest,
-		publicTarballName,
-		attachmentName
-	};
+	badRequest(
+		"Attachment name does not match",
+		{
+			mode: "scoped",
+			packageName,
+			normalizedPackageName,
+			version,
+			tarballUrl,
+			publicTarballName,
+			allowedScopedTarballNames: allowedNames,
+			attachmentNames,
+			attachments: summarizeAttachments(packageData._attachments),
+			versions: summarizeVersions(packageData),
+			distTags: packageData["dist-tags"]
+		},
+		debug
+	);
 }
 
 export const packageService = {
 	async getPackage(packageName: string) {
+		const normalizedPackageName = normalizePackageName(packageName);
+
 		const publishedPackage = await db.query.packageTable.findFirst({
 			with: { packageReleases: true },
-			where: (table, { eq }) => eq(table.name, packageName)
+			where: (table, { eq }) => eq(table.name, normalizedPackageName)
 		});
 
 		if (!publishedPackage) return undefined;
@@ -132,36 +321,80 @@ export const packageService = {
 		};
 	},
 
-	async putPackage(packageName: string, packageData: PutPackageBody) {
+	async putPackage(packageName: string, packageData: PutPackageBody, options: ServiceDebugOptions = {}) {
+		const debug = options.debug === true;
+		const normalizedPackageName = normalizePackageName(packageName);
+
 		const tag = Object.keys(packageData["dist-tags"]).at(0);
 		if (!tag) {
-			throw HttpError.badRequest("No tag");
+			badRequest(
+				"No tag",
+				{
+					packageName,
+					normalizedPackageName,
+					distTags: packageData["dist-tags"],
+					versions: Object.keys(packageData.versions ?? {})
+				},
+				debug
+			);
 		}
 
 		const versionToUpload = Object.keys(packageData.versions).at(0);
 		if (!versionToUpload) {
-			throw HttpError.badRequest("No versions");
+			badRequest(
+				"No versions",
+				{
+					packageName,
+					normalizedPackageName,
+					distTags: packageData["dist-tags"],
+					versions: packageData.versions
+				},
+				debug
+			);
 		}
 
 		const { manifest, publicTarballName, attachmentName } = resolveTarballNames(
-			packageName,
+			normalizedPackageName,
 			packageData,
-			versionToUpload
+			versionToUpload,
+			{ debug }
 		);
 
-		const attachment = packageData._attachments?.[attachmentName] as Attachment | undefined;
+		const attachments = packageData._attachments ?? {};
+		const attachment = attachments[attachmentName] as Attachment | undefined;
+
 		if (!attachment) {
-			throw HttpError.badRequest("No attachment");
+			badRequest(
+				"No attachment",
+				{
+					packageName,
+					normalizedPackageName,
+					versionToUpload,
+					attachmentName,
+					availableAttachmentNames: Object.keys(attachments),
+					attachments: summarizeAttachments(packageData._attachments)
+				},
+				debug
+			);
 		}
 
 		const conflictingPackageRelease = await db.query.packageReleaseTable.findFirst({
 			columns: { version: true },
-			where: (table, { eq, and }) =>
-				and(eq(table.package, packageName), eq(table.version, versionToUpload))
+			where: (table, { eq, and }) => and(eq(table.package, normalizedPackageName), eq(table.version, versionToUpload))
 		});
 
 		if (conflictingPackageRelease) {
-			throw HttpError.conflict("Version already exists");
+			conflict(
+				"Version already exists",
+				{
+					packageName,
+					normalizedPackageName,
+					versionToUpload,
+					tag,
+					publicTarballName
+				},
+				debug
+			);
 		}
 
 		const now = Date.now();
@@ -170,7 +403,7 @@ export const packageService = {
 			db
 				.insert(packageTable)
 				.values({
-					name: packageName,
+					name: normalizedPackageName,
 					createdAt: now,
 					updatedAt: now,
 					distTags: packageData["dist-tags"]
@@ -186,7 +419,7 @@ export const packageService = {
 			db
 				.insert(packageReleaseTable)
 				.values({
-					package: packageName,
+					package: normalizedPackageName,
 					version: versionToUpload,
 					tag,
 					manifest,
@@ -198,12 +431,43 @@ export const packageService = {
 		const uploadStream = new FixedLengthStream(attachment.length);
 		const pipePromise = base64ToReadableStream(attachment.data).pipeTo(uploadStream.writable);
 
-		await env.BUCKET.put(publicTarballName, uploadStream.readable, {
-			httpMetadata: { contentType: "application/gzip" },
-			customMetadata: { package: packageName, version: versionToUpload }
-		});
+		try {
+			await env.BUCKET.put(publicTarballName, uploadStream.readable, {
+				httpMetadata: { contentType: "application/gzip" },
+				customMetadata: { package: normalizedPackageName, version: versionToUpload }
+			});
+		} catch (error) {
+			internal(
+				"Failed to store tarball",
+				{
+					packageName,
+					normalizedPackageName,
+					versionToUpload,
+					publicTarballName,
+					attachmentName,
+					attachmentLength: attachment.length,
+					error: error instanceof Error ? error.message : String(error)
+				},
+				debug
+			);
+		}
 
-		await pipePromise;
+		try {
+			await pipePromise;
+		} catch (error) {
+			internal(
+				"Failed to stream tarball data",
+				{
+					packageName,
+					normalizedPackageName,
+					versionToUpload,
+					publicTarballName,
+					attachmentName,
+					error: error instanceof Error ? error.message : String(error)
+				},
+				debug
+			);
+		}
 
 		return {
 			package: insertedPackage[0],
@@ -211,21 +475,49 @@ export const packageService = {
 		};
 	},
 
-	async getPackageTarball(packageName: string, tarballName: string) {
+	async getPackageTarball(packageName: string, tarballName: string, options: ServiceDebugOptions = {}) {
+		const debug = options.debug === true;
+		const normalizedPackageName = normalizePackageName(packageName);
 		const bucket = env.BUCKET as R2Bucket | undefined;
 
-		if (!bucket || typeof (bucket as any).get !== "function") {
-			throw HttpError.internalServerError("Storage bucket not configured");
+		if (!bucket || !("get" in bucket) || typeof bucket.get !== "function") {
+			internal(
+				"Storage bucket not configured",
+				{
+					packageName,
+					normalizedPackageName,
+					tarballName,
+					bucketExists: Boolean(bucket)
+				},
+				debug
+			);
 		}
 
 		const packageTarball = await bucket.get(tarballName);
 
 		if (!packageTarball) {
-			throw HttpError.notFound(`Tarball not found: ${tarballName}`);
+			notFound(
+				`Tarball not found: ${tarballName}`,
+				{
+					packageName,
+					normalizedPackageName,
+					tarballName
+				},
+				debug
+			);
 		}
 
-		if (packageTarball.customMetadata?.package !== packageName) {
-			throw HttpError.internalServerError("Tarball metadata does not match requested package");
+		if (packageTarball.customMetadata?.package !== normalizedPackageName) {
+			internal(
+				"Tarball metadata does not match requested package",
+				{
+					packageName,
+					normalizedPackageName,
+					tarballName,
+					customMetadata: packageTarball.customMetadata ?? null
+				},
+				debug
+			);
 		}
 
 		return packageTarball;

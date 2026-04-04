@@ -2,11 +2,12 @@ import { rmSync } from "node:fs";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { isCancel, log, spinner, text } from "@clack/prompts";
+import { cancel, isCancel, log, password, spinner, text } from "@clack/prompts";
 import chalk from "chalk";
 import dedent from "dedent";
 import { $ } from "zx";
-import { createTokenProgrammatically, type TokenScopeType } from "./token";
+import { createTokenProgrammatically } from './token/shared';
+import type { TokenScopeType } from './token/types';
 
 const cliSpinner = spinner();
 
@@ -33,6 +34,166 @@ type PublishedSet = {
 	dependency: PublishedPackage;
 	main: PublishedPackage;
 };
+
+type RegistryTokenScope = {
+	type:
+	| "package:read"
+	| "package:write"
+	| "package:read+write"
+	| "user:read"
+	| "user:write"
+	| "user:read+write"
+	| "token:read"
+	| "token:write"
+	| "token:read+write";
+	values: string[];
+};
+
+type CreatedTokenResponse = {
+	token: string;
+	name: string;
+	scopes: RegistryTokenScope[];
+	createdAt: number;
+	updatedAt: number;
+};
+
+function stringifyUnknownError(err: unknown) {
+	if (err instanceof Error) return err.message;
+	if (typeof err === "string") return err;
+	try {
+		return JSON.stringify(err, null, 2);
+	} catch {
+		return String(err);
+	}
+}
+
+function isWranglerAuth10000Error(err: unknown) {
+	const text = stringifyUnknownError(err);
+	return text.includes("Authentication error [code: 10000]") || text.includes("code: 10000");
+}
+
+function isWranglerD1ImportAuthError(err: unknown) {
+	const text = stringifyUnknownError(err);
+	return (
+		isWranglerAuth10000Error(text) &&
+		(text.includes("/d1/database/") || text.includes("/import") || text.includes("remote database"))
+	);
+}
+
+async function promptForBootstrapToken() {
+	const envToken =
+		process.env.NPFLARED_ADMIN_TOKEN ?? process.env.NPFLARED_BOOTSTRAP_TOKEN ?? process.env.NPFLARED_TOKEN;
+
+	if (envToken?.trim()) {
+		return envToken.trim();
+	}
+
+	const bootstrapToken = await password({
+		message: "Wrangler auth failed. Enter a bootstrap/admin token for the registry:"
+	});
+
+	if (isCancel(bootstrapToken)) process.exit(1);
+
+	if (!bootstrapToken || !bootstrapToken.trim()) {
+		cancel("A bootstrap/admin token is required for fallback token creation.");
+		process.exit(1);
+	}
+
+	return bootstrapToken.trim();
+}
+
+async function createTokenViaRegistryApi({
+	registryBase,
+	adminToken,
+	tokenLabel,
+	packageNames,
+	scopeType
+}: {
+	registryBase: string;
+	adminToken: string;
+	tokenLabel: string;
+	packageNames: string[];
+	scopeType: TokenScopeType;
+}) {
+	const response = await fetch(`${registryBase}/-/npm/v1/tokens`, {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${adminToken}`,
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			name: tokenLabel,
+			scopes: [
+				{
+					type: scopeType,
+					values: packageNames
+				}
+			]
+		})
+	});
+
+	if (!response.ok) {
+		const body = await response.text().catch(() => "");
+		throw new Error(`Fallback token creation failed: ${response.status} ${response.statusText}\n${body}`);
+	}
+
+	return (await response.json()) as CreatedTokenResponse;
+}
+
+async function mintTestTokenWithFallback({
+	registryBase,
+	packageNames,
+	scopeType,
+	tokenLabel,
+	local
+}: {
+	registryBase: string;
+	packageNames: string[];
+	scopeType: TokenScopeType;
+	tokenLabel: string;
+	local: boolean;
+}) {
+	try {
+		return await createTokenProgrammatically({
+			packageNames,
+			scopeType,
+			tokenLabel,
+			local
+		});
+	} catch (err) {
+		if (!isWranglerD1ImportAuthError(err)) {
+			throw err;
+		}
+
+		log.warn(
+			chalk.yellow(
+				[
+					"Wrangler remote D1 authentication failed with Cloudflare code 10000.",
+					"Falling back to HTTP token creation via the deployed registry.",
+					"Tip: try `wrangler logout`, `wrangler login`, `wrangler whoami`, and check CF_API_TOKEN/CLOUDFLARE_API_TOKEN."
+				].join("\n")
+			)
+		);
+
+		const adminToken = await promptForBootstrapToken();
+
+		cliSpinner.start("Creating test token via registry API fallback...");
+		try {
+			const createdToken = await createTokenViaRegistryApi({
+				registryBase,
+				adminToken,
+				tokenLabel,
+				packageNames,
+				scopeType
+			});
+			cliSpinner.stop("Created test token via registry API fallback");
+			return createdToken.token;
+		} catch (fallbackErr) {
+			cliSpinner.stop(chalk.red(`Fallback token creation failed: ${fallbackErr}`));
+			throw fallbackErr;
+		}
+	}
+}
 
 async function writeScopedNpmrc(dir: string, cfg: RegistryConfig) {
 	const npmrc = [
@@ -288,7 +449,8 @@ export const test = async ({ local = false, port = 8787 }: TestOptions = {}) => 
 	const tokenLabel = `cli-test-${testScope.replace(/^@/, "")}`;
 
 	log.info("Minting multi-package test token...");
-	const testToken = await createTokenProgrammatically({
+	const testToken = await mintTestTokenWithFallback({
+		registryBase,
 		packageNames: [depPkgName, mainPkgName],
 		scopeType,
 		tokenLabel,

@@ -20,12 +20,12 @@ if (!$.quote) {
 }
 
 function getPackageManagerAgent(): string {
-	return cliContext.getStore()?.packageManagerAgent ?? "npm";
+	return cliContext.getStore()?.packageManagerAgent ?? "pnpm";
 }
 
 async function runWrangler(args: string[], options: { cwd?: string } = {}): Promise<ProcessOutput> {
 	const packageManager = getPackageManagerAgent();
-	// @ts-ignore
+	// @ts-expect-error The Agent type is not importable
 	const command = getCommand(packageManager, "execute", args);
 	return await executeCommand(command, { cwd: options.cwd });
 }
@@ -164,7 +164,7 @@ type ExecuteD1TextOptions = ExecuteD1BaseOptions & {
 	schema?: never;
 };
 
-type ExecuteD1RowsOptions<TRow = unknown> = ExecuteD1BaseOptions & {
+type ExecuteD1RowsOptions = ExecuteD1BaseOptions & {
 	json?: true;
 	rows: true;
 	schema?: never;
@@ -251,7 +251,7 @@ export const deploy = async (config: { cwd?: string } = {}) => {
 
 export async function executeD1(sql: string, options?: ExecuteD1TextOptions): Promise<string>;
 
-export async function executeD1<TRow = unknown>(sql: string, options: ExecuteD1RowsOptions<TRow>): Promise<TRow[]>;
+export async function executeD1<TRow = unknown>(sql: string, options: ExecuteD1RowsOptions): Promise<TRow[]>;
 
 export async function executeD1<TSchema extends z.ZodTypeAny>(
 	sql: string,
@@ -260,7 +260,7 @@ export async function executeD1<TSchema extends z.ZodTypeAny>(
 
 export async function executeD1<TRow = unknown, TSchema extends z.ZodTypeAny = z.ZodNever>(
 	sql: string,
-	options: ExecuteD1TextOptions | ExecuteD1RowsOptions<TRow> | ExecuteD1SchemaOptions<TSchema> = {}
+	options: ExecuteD1TextOptions | ExecuteD1RowsOptions | ExecuteD1SchemaOptions<TSchema> = {}
 ): Promise<string | TRow[] | z.infer<TSchema>[]> {
 	const { cwd, local = false, useFile = false } = options;
 
