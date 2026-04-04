@@ -23,7 +23,7 @@ import {
   resolvePerms,
   validatePackageOrScopeName
 } from "./shared";
-import type { ListTokensArgs, PackagePerms, TokenRow } from './types';
+import type { ListTokensArgs, PackagePerms, TokenRow } from "./types";
 
 type TokenWithPerms = {
   row: TokenRow;

@@ -4,7 +4,7 @@ import { isCancel, log, select, spinner, text } from "@clack/prompts";
 import chalk from "chalk";
 import { encode as encodeBase32 } from "uuid-b32";
 import { executeD1, getLocalAccountId } from "../../utils/cloudflare";
-import type { PackagePerms, ParsedScope, TokenRow, TokenScopeType } from './types';
+import type { PackagePerms, ParsedScope, TokenRow, TokenScopeType } from "./types";
 
 export const apiCwd = resolve(import.meta.dirname, "../../../../api");
 export const cliSpinner = spinner();
@@ -74,10 +74,10 @@ export const fmtPerm = (packagePerms: PackagePerms): string => {
 export const renderLegend = () => {
   log.info(
     chalk.gray("Legend: ") +
-    `${chalk.green("R/W")} read+write  ` +
-    `${chalk.cyan("R")} read/install  ` +
-    `${chalk.yellow("W")} write/publish  ` +
-    `${chalk.dim("·")} no access`
+      `${chalk.green("R/W")} read+write  ` +
+      `${chalk.cyan("R")} read/install  ` +
+      `${chalk.yellow("W")} write/publish  ` +
+      `${chalk.dim("·")} no access`
   );
 };
 

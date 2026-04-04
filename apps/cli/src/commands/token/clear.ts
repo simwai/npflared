@@ -3,7 +3,7 @@ import chalk from "chalk";
 import type { CommandModule } from "yargs";
 import { cliContext } from "../../utils/context";
 import { apiCwd, cliSpinner, ensureRemoteCloudflareAccount, executeD1, isTokenRow } from "./shared";
-import type { TokenRow } from './types';
+import type { TokenRow } from "./types";
 
 type ClearTokensArgs = {
   local: boolean;

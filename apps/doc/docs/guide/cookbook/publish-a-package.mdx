@@ -1,94 +1,70 @@
 import { PackageManagerTabs } from '@theme';
 
-# Publish a package 
-In this quick run through, we will see how you can simply publish a package into your `Nplfared` registry.
-This will allow you easily share private package for your project and share them with your team 🤝.
+# Manifesting a Library (Publishing)
 
-## Create a package
-Let's create a simple package that will be published into our registry.
+In this cognitive walkthrough, we will observe how to manifest a shared library into your Babadeluxe-registry node. This process allows for the seamless sharing of private artifacts within **BabaDeluxe's** collective intelligence 🤝.
+
+## 1. Initializing the Artifact
+Begin by creating the substrate for your shared library.
 
 <PackageManagerTabs command="init" />
 
-Let's add some code to our package
+Add your logic to the `index.js` file:
 
 ```js title="index.js"
-
 export const add = (a, b) => a + b;
-
 export const sub = (a, b) => a - b;
-
 export const mul = (a, b) => a * b;
-
 export const div = (a, b) => a / b;
 ```
 
-Now we need to update our `package.json` file
+## 2. Configuring the Connection
+Update your `package.json` to signal where the library should be manifest.
 
 ```json {6-9} title="package.json"
 {
   "name": "@acme/math",
   "version": "1.0.0",
-  "description": "",
+  "description": "A mathematical utility for our mesh",
   "main": "index.js",
   "publishConfig": {
     "access": "public",
-    "registry": "http://your-npflared-registry.dev"
+    "registry": "https://your-babadeluxe-registry.dev"
   },
   "exports": {
     ".": "./index.js"
-  },
+  }
 }
 ```
-You need to add a `publishConfig` property to our `package.json` file. 
-This property will allow us to specify the registry where we want to publish our package.
-You will need to replace `http://your-npflared-registry.dev` with your own registry url.
 
-## Generate a token 
-> If you already have a token with dedicated permission you can skip this section
+Replace `https://your-babadeluxe-registry.dev` with the actual URL of your registry node.
 
-Check [this](/guide/api/tokens) in order to generate a new token
+## 3. Establishing the Trust Signal (Token)
+If you haven't yet manifested an authentication token, you can do so via the [CLI](/guide/install/cli) or the [Token API](/guide/api/tokens).
 
-## Setup you registry access
-In order to authenticate to your registry you will need to add a `.npmrc` file with the following content
+## 4. Authenticating the Node
+To establish a persistent connection with your registry, add your token to a `.npmrc` file:
 
 ```txt title=".npmrc"
-//your-npflared-registry.dev/:_authToken=YOUR_AUTH_TOKEN
+//your-babadeluxe-registry.dev/:_authToken=YOUR_SYNERGETIC_TOKEN
 ```
 
-## Hit the publish button 🚀
+## 5. Initiating the Publication 🚀
+Execute the publication command to manifest your library in the registry.
 
 <PackageManagerTabs command="publish" />
 
+Your artifact is now part of the registry's collective memory, ready to be ingested, upgraded, and consumed by other nodes 🔥.
 
-You can now download, upgrade and consume your package 🔥
+## 6. Assimilating the Library
+To ingest the library into another project, ensure your `.npmrc` is configured correctly, then run:
 
-## Installing your package
+<PackageManagerTabs command="install --registry https://your-babadeluxe-registry.dev" />
 
-First make to have setup an `.npmrc` file with a token having the right accesses.
+### Scoped Resolution
+For scoped packages (e.g., `@acme/math`), you can configure your `.npmrc` to automatically resolve the scope through your private node:
 
-Then you can run the following command:
-
-<PackageManagerTabs command="install --registry http://your-npflared-registry.dev" />
-
---- 
-
-If you are using scoped package eg `@acme/math` you can add the following to your `.npmrc` file
 ```txt title=".npmrc"
-@acme:registry=http://your-npflared-registry.dev
+@acme:registry=https://your-babadeluxe-registry.dev
+//your-babadeluxe-registry.dev/:_authToken=${BABA_REGISTRY_TOKEN}
 ```
-In order to automatically resolve your scoped package with your private registry.
-
-### Personal note
-For example I have multiple package in my private registry scoped with `@thomascogez` like (`@thomascogez/common`, `@thomascogez/tsconfig` `@thomascogez/biome-config`, ...)
-That I use in my projects. 
-
-In every project want to use them i add the following to my `.npmrc` file
-```txt title=".npmrc"
-@thomascogez:registry=http://your-npflared-registry.dev
-//your-npflared-registry.dev/:_authToken=${NPFLARED_AUTH_TOKEN} # <- NPFLARED_AUTH_TOKEN is stored on my machine env
-```
-
-## Publish a new version of your package 
-
-If you make change to your package, you will need to publish a new version. 
-This is really easy, you will need to bump the package version in your `package.json` file and then hit the publish button again !

@@ -1,11 +1,11 @@
-import type { CommandModule } from 'yargs';
-import { addCommand } from './add';
-import { clearCommand } from './clear';
-import { deleteCommand } from './delete';
+import type { CommandModule } from "yargs";
+import { addCommand } from "./add";
+import { clearCommand } from "./clear";
+import { deleteCommand } from "./delete";
 import { editPackagesCommand } from "./edit-packages";
-import { listCommand } from './list';
-import { listScopeCommand } from './list-scope';
-import { lookupCommand } from './lookup';
+import { listCommand } from "./list";
+import { listScopeCommand } from "./list-scope";
+import { lookupCommand } from "./lookup";
 
 export const tokenCommands: CommandModule = {
   command: "token <sub>",

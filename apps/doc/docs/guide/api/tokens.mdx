@@ -1,6 +1,9 @@
-# Tokens
+# Token Management
 
-## Generate a new token 
+Tokens are the cryptographic trust-signals that allow you to interact with the Babadeluxe Registry. Managing these is key to maintaining a secure and functional node for our shared codebases.
+
+## Generating a New Signal (Token Create)
+
 :::info
 In order to generate a new token, you will need to be authenticated and having at least the `token:write` permission with value `*`.
 :::
@@ -38,34 +41,26 @@ You can send has many scopes as you want.
 The `values` property is an array of strings. You can use `*` to match all packages or provide exact package names (including scopes, e.g., `@my-scope/my-pkg`).
 :::
 
-## Get all tokens
+## Observing All Signals (List Tokens)
 
-You can get all tokens by sending a `GET` request to the `/-/npm/v1/tokens` endpoint.
-
-```bash
-curl -X GET https://my-npflared.dev/-/npm/v1/tokens
-```
-
-## Get a token
-
-You can get a token by sending a `GET` request to the `/-/npm/v1/tokens/token/:token` endpoint.
+You can retrieve all active tokens by sending a `GET` request to the `/-/npm/v1/tokens` endpoint.
 
 ```bash
-curl -X GET https://my-npflared.dev/-/npm/v1/tokens/token/my-token
+curl -X GET https://my-babadeluxe-registry.dev/-/npm/v1/tokens
 ```
 
-:::info
-The `:token` parameter is the token you want to get.
-:::
+## Retrieving a Specific Signal (Get Token)
 
-## Delete a token
+You can retrieve a token by sending a `GET` request to the `/-/npm/v1/tokens/token/:token` endpoint.
+
+```bash
+curl -X GET https://my-babadeluxe-registry.dev/-/npm/v1/tokens/token/my-token
+```
+
+## Pruning a Signal (Delete Token)
 
 You can delete a token by sending a `DELETE` request to the `/-/npm/v1/tokens/token/:token` endpoint.
 
 ```bash
-curl -X DELETE https://my-npflared.dev/-/npm/v1/tokens/token/my-token
+curl -X DELETE https://my-babadeluxe-registry.dev/-/npm/v1/tokens/token/my-token
 ```
-
-:::info
-The `:token` parameter is the token you want to delete.
-:::

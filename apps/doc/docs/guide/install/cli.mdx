@@ -1,16 +1,49 @@
 import { PackageManagerTabs } from '@theme';
 
-# Using the CLI
+# Babadeluxe Registry CLI
 
-## 1. Login with wrangler on your terminal
+The `@npflared/cli` is your interface for managing the registry's state. It is the synaptic bridge for installing and configuring your Babadeluxe-registry node.
+
+## 1. Initial Signaling (Wrangler Login)
+Authenticate with your Cloudflare identity to establish the necessary trust relationship.
 ```shell
 npx wrangler login
 ```
 
-## 2. Run the npflared installer
+## 2. Manifesting the Node
+Run the installer to bootstrap your serverless registry from the CLI substrate.
 ```shell
 npx @npflared/cli install
 ```
 
-And we are done 🎉
+And your private node is now active 🎉
 
+## Core Commands
+
+### `install`
+Manifests the Babadeluxe Registry infrastructure (Workers, D1, R2) within your Cloudflare account.
+
+### `token`
+Manage the granular permissions for your registry's nodes.
+
+#### `token add`
+Create a new token with specific package-level permissions.
+- `-p, --package`: One or more packages to scope (e.g. `@scope/a`, `b`).
+- `-m, --mode`: Access level (`package:read`, `package:write`, `package:read+write`).
+- `-n, --name`: A label for identification.
+- `-l, --local`: Direct the signal to your local D1 instance.
+
+#### `token list`
+Observe all existing tokens within the registry.
+
+#### `token delete <id>`
+Prune a token from the registry, severing its access.
+
+#### `token lookup <token_value>`
+Identify the metadata and scopes associated with a specific token string.
+
+#### `token clear`
+Wipe all tokens from the D1 database. Use with caution; this action is irreversible.
+
+### `test`
+Run registry-level tests to ensure the integrity of your node's logic.

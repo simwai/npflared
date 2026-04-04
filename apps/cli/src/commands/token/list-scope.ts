@@ -21,7 +21,7 @@ import {
   resolvePerms,
   validateScopeName
 } from "./shared";
-import type { ListScopeArgs, TokenRow } from './types';
+import type { ListScopeArgs, TokenRow } from "./types";
 
 export const listScopeCommand: CommandModule = {
   command: "list-scope",

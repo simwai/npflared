@@ -13,7 +13,7 @@ import {
   getTokenOptionsFromRows,
   promptTokenValue
 } from "./shared";
-import type { RemoveTokenArgs } from './types';
+import type { RemoveTokenArgs } from "./types";
 
 export const deleteCommand: CommandModule = {
   command: ["delete", "remove"],

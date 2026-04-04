@@ -14,7 +14,7 @@ import {
   promptTokenName,
   validatePackageList
 } from "./shared";
-import type { CreateTokenArgs, TokenScopeType } from './types';
+import type { CreateTokenArgs, TokenScopeType } from "./types";
 
 export const addCommand: CommandModule = {
   command: ["add", "create"],

@@ -19,9 +19,9 @@ import {
   promptTokenValue,
   renderLegend,
   renderTable,
-  resolvePerms,
+  resolvePerms
 } from "./shared";
-import type { LookupTokenArgs, TokenRow } from './types';
+import type { LookupTokenArgs, TokenRow } from "./types";
 
 export const lookupCommand: CommandModule = {
   command: "lookup",

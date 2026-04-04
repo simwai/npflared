@@ -1,19 +1,25 @@
-# What is Npflared?
+# What is Babadeluxe Registry?
 
-Npflared is a self hostable serverless private npm registry. It's build on top of cloudflare workers, d1 and r2.
+Babadeluxe Registry is a lightweight, serverless private npm registry that we use at **BabaDeluxe** to deploy and share all our libraries and common code. Built on the [Npflared](https://github.com/thomas-cogez/npflared) substrate, it is architected to be a high-performance, low-cost node in our development ecosystem.
 
-## Why?
+By leveraging Cloudflare Workers, D1, and R2, we have manifested a registry that allows us to manage package access across our teams without the overhead of traditional npm hosting.
 
-If you need an easy way to distribute npm packages internally or to your client at any cost, Npflared is the solution for you.
+:::info
+A big contribution and credit to [Thomas Cogez](https://github.com/thomas-cogez), the original creator of Npflared, upon which this registry is founded.
+:::
 
-Npflared is not aiming to be a fully drop-in replacement for a npm registry. It's goal is to be a private registry for you and your team
+## Why Babadeluxe Registry?
 
+If you seek a frictionless, low-cost way to distribute npm packages within your own team's cognitive network, Babadeluxe Registry provides the substrate for this exchange.
 
-## Using Npflared
+We are not looking to replace the global registry, but rather to complement it with private, serverless nodes that offer maximum agency and minimum marginal cost for our teams.
 
-### Publishing a package
-Set the `publishConfig` to your Npflared instance
-```js title="package.json" {4-6}
+## Interacting with the Mesh
+
+### Publishing an Artifact
+Signal your `publishConfig` to point toward your registry node.
+
+```json title="package.json" {4-6}
 {
   "name": "@acme/std",
   "version": "1.0.0",
@@ -25,23 +31,26 @@ Set the `publishConfig` to your Npflared instance
   }
 }
 ```
-Set the `_authToken` in your `.npmrc`
+
+Establish your authentication signal (`_authToken`) in your `.npmrc`:
+
 ```txt title=".npmrc"
-//localhost:8787/:_authToken=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+//localhost:8787/:_authToken=your-synergetic-token-here
 ```
 
-Then you can publish your package 🎉
+Then you can manifest your package in the registry 🎉
 ```bash
 npm publish
 ```
 
-### Installing a package
-Set the `_authToken` in your `.npmrc`
+### Ingesting an Artifact
+Link your `_authToken` in your `.npmrc`:
+
 ```txt title=".npmrc"
-//localhost:8787/:_authToken=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+//localhost:8787/:_authToken=your-synergetic-token-here
 ```
 
-Then you can install your package 🎉
+Then you can assimilate the package into your project 🎉
 ```bash
 npm install @acme/std --registry http://localhost:8787
 ```

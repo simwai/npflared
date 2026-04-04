@@ -19,7 +19,7 @@ import {
   promptTokenValue,
   validatePackageList
 } from "./shared";
-import type { ParsedScope, TokenRow } from './types';
+import type { ParsedScope, TokenRow } from "./types";
 
 type EditPackagesArgs = {
   token?: string;
@@ -106,7 +106,9 @@ async function editTokenPackages(args: EditPackagesArgs) {
     }
 
     const currentPackages = getPackagesFromParsedScopes(parsedScopes);
-    const packageNames = args.packages?.length ? args.packages : await promptPackagesForEdit(args.local, currentPackages);
+    const packageNames = args.packages?.length
+      ? args.packages
+      : await promptPackagesForEdit(args.local, currentPackages);
 
     const shouldUpdate = await confirm({
       message: `Override package access for token ${fmtToken(tokenValue)}?`
@@ -117,7 +119,9 @@ async function editTokenPackages(args: EditPackagesArgs) {
       return;
     }
 
-    log.warn(`Impact: this token will keep mode ${chalk.bold.white(scopeType)} but lose access to ${currentPackages.length} previous package(s) and gain access only to ${packageNames.length} selected package(s).`);
+    log.warn(
+      `Impact: this token will keep mode ${chalk.bold.white(scopeType)} but lose access to ${currentPackages.length} previous package(s) and gain access only to ${packageNames.length} selected package(s).`
+    );
 
     const shouldProceed = await confirm({
       message: `Apply package override now?`

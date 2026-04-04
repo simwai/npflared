@@ -1,26 +1,26 @@
 <div align="center">
     <img src="./assets/logo.svg" width="200" height="200">
-</div align="center">
-<div align="center"><h3>A serverless private npm registry</h3></div>
+</div>
+<div align="center"><h3>Babadeluxe Registry: Lightweight Private NPM Infrastructure</h3></div>
 
-> [!IMPORTANT]  
-> Npflared is at it's early stage, it can already be use to distribute packages but some features or documentation are still in draft/development
+> [!NOTE]
+> Babadeluxe Registry is a fork of the excellent [Npflared](https://github.com/thomas-cogez/npflared). A huge shoutout and contribution to [Thomas Cogez](https://github.com/thomas-cogez), the original creator, for the foundational architecture.
 
-- ❤️ <b>Free and open source</b>, Get the benefit of a full blown private npm registry for you and your team.
-- 🔌 <b>Npm clients compatible</b>, You can use Npflared with your own stack without compromise as it aim to make main features 100% compatible with existing npm clients
-- ☁️ <b>Self hostable on Cloudflare for free</b>, Npflared is based on cloudflare services (worker, d1 and r2), this allow to host your own npflared for free !
-- 🤝 <b>Proxy with other npm registry</b>
+Babadeluxe Registry is our internal substrate for manifesting and distributing private npm packages. At **BabaDeluxe**, we use this registry to deploy all our libraries and shared code modules, managing their accessibility across our projects while maintaining a near-zero marginal cost.
+
+By leveraging the distributed power of Cloudflare Workers, D1, and R2, we've created a synergistic environment for our codebases to thrive without the overhead of traditional registry solutions.
+
+- 🌌 **Efficient & Open**: A streamlined private registry that fosters collaborative development across our teams.
+- 🔗 **Interoperable**: Fully compatible with your favorite npm clients. It integrates into your existing workflows like a well-formed connection.
+- ☁️ **Cloud-Native**: Architected for the Cloudflare edge. Deploy your own registry node for minimal cost and maximum performance.
+- 🛡️ **Granular Access**: Manage permissions and tokens easily to ensure the right modules reach the right projects.
 
 <div align="center">
-    <h3><a target="_blank" href="https://npflared.thomas-cogez.fr/">Documentation</a></h3>
+    <h3><a target="_blank" href="https://npflared.thomas-cogez.fr/">Explore the Documentation</a></h3>
 </div>
 
-# Roadmap
-- [ ] Install script/cli
-- [ ] Better input validation
-- [ ] UI for packages discovery and sharing documentation
-- [ ] Full npm endpoint compliance / proxy
-- [ ] More do define
-
-
-
+# The Path Forward
+- [x] **CLI Genesis**: The \`@npflared/cli\` (powering Babadeluxe Registry) handles node and token management.
+- [ ] **Validation Refinement**: Hardening the input membranes for greater stability.
+- [ ] **UI Visualization**: A portal for the discovery and observation of our shared libraries.
+- [ ] **Protocol Resonance**: Aiming for total compatibility with all npm registry signals.
