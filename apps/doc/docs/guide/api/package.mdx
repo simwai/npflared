@@ -1,6 +1,6 @@
 # Package Operations
 
-The API provides the substrate for your package artifacts to be manifest and retrieved. In order to interact with these endpoints, you will need to establish an authenticated connection with the appropriate scope.
+The API provides the substrate for your shared libraries to be manifest and retrieved. In order to interact with these endpoints, you will need to establish an authenticated connection with the appropriate scope.
 
 ## Retrieving a Package (Ingestion)
 
@@ -11,9 +11,9 @@ In order to retrieve a package, you will need to be authenticated and having at 
 You can retrieve a package's metadata by sending a `GET` request to the `/:package` endpoint.
 
 ```bash
-curl -X GET https://my-npflared.dev/package
+curl -X GET https://my-babadeluxe-registry.dev/package
 # Or for a scoped package:
-curl -X GET https://my-npflared.dev/@scope/package
+curl -X GET https://my-babadeluxe-registry.dev/@scope/package
 ```
 
 :::info
@@ -30,11 +30,11 @@ You can publish a package by sending a `PUT` request to the `/:package`. It is u
 
 ```bash
 # Standard package:
-PUT https://my-npflared.dev/package
+PUT https://my-babadeluxe-registry.dev/package
 # Scoped package:
-PUT https://my-npflared.dev/@scope/package
+PUT https://my-babadeluxe-registry.dev/@scope/package
 ```
 
-The flow of this publication event involves several synergistic interactions between the Worker, D1 for metadata storage, and R2 for the package's binary tarball.
+The flow of this publication event involves several synergistic interactions between the Worker brain, D1 for metadata, and R2 for binary storage.
 
 ![Publish a package](/publish-flow.png)

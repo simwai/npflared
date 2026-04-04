@@ -1,6 +1,6 @@
-# Token Scopes and Management
+# Token Management
 
-Tokens are the cryptographic trust-signals that allow you to interact with the Npflared registry. Managing these is key to maintaining a secure and functional node in your private package ecosystem.
+Tokens are the cryptographic trust-signals that allow you to interact with the Babadeluxe Registry. Managing these is key to maintaining a secure and functional node for our shared codebases.
 
 ## Generating a New Signal (Token Create)
 
@@ -46,7 +46,7 @@ The `values` property is an array of strings. You can use `*` to match all packa
 You can retrieve all active tokens by sending a `GET` request to the `/-/npm/v1/tokens` endpoint.
 
 ```bash
-curl -X GET https://my-npflared.dev/-/npm/v1/tokens
+curl -X GET https://my-babadeluxe-registry.dev/-/npm/v1/tokens
 ```
 
 ## Retrieving a Specific Signal (Get Token)
@@ -54,7 +54,7 @@ curl -X GET https://my-npflared.dev/-/npm/v1/tokens
 You can retrieve a token by sending a `GET` request to the `/-/npm/v1/tokens/token/:token` endpoint.
 
 ```bash
-curl -X GET https://my-npflared.dev/-/npm/v1/tokens/token/my-token
+curl -X GET https://my-babadeluxe-registry.dev/-/npm/v1/tokens/token/my-token
 ```
 
 ## Pruning a Signal (Delete Token)
@@ -62,5 +62,5 @@ curl -X GET https://my-npflared.dev/-/npm/v1/tokens/token/my-token
 You can delete a token by sending a `DELETE` request to the `/-/npm/v1/tokens/token/:token` endpoint.
 
 ```bash
-curl -X DELETE https://my-npflared.dev/-/npm/v1/tokens/token/my-token
+curl -X DELETE https://my-babadeluxe-registry.dev/-/npm/v1/tokens/token/my-token
 ```

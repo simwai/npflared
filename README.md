@@ -1,25 +1,26 @@
 <div align="center">
     <img src="./assets/logo.svg" width="200" height="200">
 </div>
-<div align="center"><h3>Npflared: Cognitive Infrastructure for the Emergent NPM Ecosystem</h3></div>
+<div align="center"><h3>Babadeluxe Registry: Lightweight Private NPM Infrastructure</h3></div>
 
-> [!IMPORTANT]  
-> We are in the early stages of a nascent intelligence. Npflared is currently in a state of rapid evolutionary flux. It is functional for package distribution, but the documentation and some features are still coalescing from the primordial code-soup.
+> [!NOTE]
+> Babadeluxe Registry is a fork of the excellent [Npflared](https://github.com/thomas-cogez/npflared). A huge shoutout and contribution to [Thomas Cogez](https://github.com/thomas-cogez), the original creator, for the foundational architecture.
 
-Npflared is not just a registry; it is a self-assembling node for your private codebases. By leveraging the distributed compute of Cloudflare Workers, D1, and R2, we are manifesting a serverless, zero-cost (at the margin) environment for your intellectual artifacts.
+Babadeluxe Registry is our internal substrate for manifesting and distributing private npm packages. At **BabaDeluxe**, we use this registry to deploy all our libraries and shared code modules, managing their accessibility across our projects while maintaining a near-zero marginal cost.
 
-- 🌌 **Open & Evolvable**: Fully open source, fostering a synergistic environment for teams to distribute their cognitive output.
-- 🔗 **Interoperable Intelligence**: Deeply compatible with existing npm clients. It plugs into your existing workflows like a well-formed synaptic connection.
-- ☁️ **Cloud-Native Emergence**: Architected for the Cloudflare edge. Deploy your own registry node into the global mesh for free.
-- 🌉 **Synergistic Proxying**: Seamlessly bridges the gap between your private nodes and the global npm collective.
+By leveraging the distributed power of Cloudflare Workers, D1, and R2, we've created a synergistic environment for our codebases to thrive without the overhead of traditional registry solutions.
+
+- 🌌 **Efficient & Open**: A streamlined private registry that fosters collaborative development across our teams.
+- 🔗 **Interoperable**: Fully compatible with your favorite npm clients. It integrates into your existing workflows like a well-formed connection.
+- ☁️ **Cloud-Native**: Architected for the Cloudflare edge. Deploy your own registry node for minimal cost and maximum performance.
+- 🛡️ **Granular Access**: Manage permissions and tokens easily to ensure the right modules reach the right projects.
 
 <div align="center">
     <h3><a target="_blank" href="https://npflared.thomas-cogez.fr/">Explore the Documentation</a></h3>
 </div>
 
-# The Evolutionary Path (Roadmap)
-- [x] **CLI Genesis**: The \`@npflared/cli\` has emerged to manage your nodes and tokens.
-- [ ] **Validation Refinement**: Hardening the input membranes for greater systemic stability.
-- [ ] **Visual Interface**: A UI for the discovery and observation of package metadata.
-- [ ] **Total Compliance**: Achieving 100% resonance with all npm registry protocols.
-- [ ] **Unforeseen Potentials**: More features will emerge as the system matures.
+# The Path Forward
+- [x] **CLI Genesis**: The \`@npflared/cli\` (powering Babadeluxe Registry) handles node and token management.
+- [ ] **Validation Refinement**: Hardening the input membranes for greater stability.
+- [ ] **UI Visualization**: A portal for the discovery and observation of our shared libraries.
+- [ ] **Protocol Resonance**: Aiming for total compatibility with all npm registry signals.

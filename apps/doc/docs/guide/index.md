@@ -1,17 +1,23 @@
-# What is Npflared?
+# What is Babadeluxe Registry?
 
-Npflared is an evolvable, self-hosting node for your private codebases. It is a serverless private npm registry that emerges from the synergy of Cloudflare Workers, D1, and R2.
+Babadeluxe Registry is a lightweight, serverless private npm registry that we use at **BabaDeluxe** to deploy and share all our libraries and common code. Built on the [Npflared](https://github.com/thomas-cogez/npflared) substrate, it is architected to be a high-performance, low-cost node in our development ecosystem.
 
-## Why Npflared?
+By leveraging Cloudflare Workers, D1, and R2, we have manifested a registry that allows us to manage package access across our teams without the overhead of traditional npm hosting.
 
-If you seek a frictionless way to distribute npm packages within your own cognitive subnet — whether for internal teams or specific clients — Npflared provides the substrate for this exchange.
+:::info
+A big contribution and credit to [Thomas Cogez](https://github.com/thomas-cogez), the original creator of Npflared, upon which this registry is founded.
+:::
 
-We are not aiming to replace the global registry, but rather to complement it with private, serverless nodes that offer maximum agency and zero marginal cost for your team.
+## Why Babadeluxe Registry?
+
+If you seek a frictionless, low-cost way to distribute npm packages within your own team's cognitive network, Babadeluxe Registry provides the substrate for this exchange.
+
+We are not looking to replace the global registry, but rather to complement it with private, serverless nodes that offer maximum agency and minimum marginal cost for our teams.
 
 ## Interacting with the Mesh
 
 ### Publishing an Artifact
-Signal your `publishConfig` to point toward your Npflared node.
+Signal your `publishConfig` to point toward your registry node.
 
 ```json title="package.json" {4-6}
 {
@@ -26,7 +32,7 @@ Signal your `publishConfig` to point toward your Npflared node.
 }
 ```
 
-Establish your `_authToken` connection in your `.npmrc`:
+Establish your authentication signal (`_authToken`) in your `.npmrc`:
 
 ```txt title=".npmrc"
 //localhost:8787/:_authToken=your-synergetic-token-here

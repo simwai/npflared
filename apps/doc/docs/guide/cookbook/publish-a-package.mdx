@@ -1,15 +1,15 @@
 import { PackageManagerTabs } from '@theme';
 
-# Manifesting an Artifact (Publishing)
+# Manifesting a Library (Publishing)
 
-In this cognitive walkthrough, we will observe how to manifest a package into your Npflared registry node. This process allows for the seamless sharing of private artifacts within your team's collective intelligence 🤝.
+In this cognitive walkthrough, we will observe how to manifest a shared library into your Babadeluxe-registry node. This process allows for the seamless sharing of private artifacts within **BabaDeluxe's** collective intelligence 🤝.
 
 ## 1. Initializing the Artifact
-Begin by creating the substrate for your package.
+Begin by creating the substrate for your shared library.
 
 <PackageManagerTabs command="init" />
 
-Add your cognitive logic to the `index.js` file:
+Add your logic to the `index.js` file:
 
 ```js title="index.js"
 export const add = (a, b) => a + b;
@@ -19,17 +19,17 @@ export const div = (a, b) => a / b;
 ```
 
 ## 2. Configuring the Connection
-Update your `package.json` to signal where the artifact should be manifest.
+Update your `package.json` to signal where the library should be manifest.
 
 ```json {6-9} title="package.json"
 {
   "name": "@acme/math",
   "version": "1.0.0",
-  "description": "A mathematical utility for the mesh",
+  "description": "A mathematical utility for our mesh",
   "main": "index.js",
   "publishConfig": {
     "access": "public",
-    "registry": "https://your-npflared-node.dev"
+    "registry": "https://your-babadeluxe-registry.dev"
   },
   "exports": {
     ".": "./index.js"
@@ -37,7 +37,7 @@ Update your `package.json` to signal where the artifact should be manifest.
 }
 ```
 
-Replace `https://your-npflared-node.dev` with the actual URL of your registry node.
+Replace `https://your-babadeluxe-registry.dev` with the actual URL of your registry node.
 
 ## 3. Establishing the Trust Signal (Token)
 If you haven't yet manifested an authentication token, you can do so via the [CLI](/guide/install/cli) or the [Token API](/guide/api/tokens).
@@ -46,25 +46,25 @@ If you haven't yet manifested an authentication token, you can do so via the [CL
 To establish a persistent connection with your registry, add your token to a `.npmrc` file:
 
 ```txt title=".npmrc"
-//your-npflared-node.dev/:_authToken=YOUR_SYNERGETIC_TOKEN
+//your-babadeluxe-registry.dev/:_authToken=YOUR_SYNERGETIC_TOKEN
 ```
 
 ## 5. Initiating the Publication 🚀
-Execute the publication command to manifest your package in the registry.
+Execute the publication command to manifest your library in the registry.
 
 <PackageManagerTabs command="publish" />
 
 Your artifact is now part of the registry's collective memory, ready to be ingested, upgraded, and consumed by other nodes 🔥.
 
-## 6. Assimilating the Artifact
-To ingest the package into another project, ensure your `.npmrc` is configured correctly, then run:
+## 6. Assimilating the Library
+To ingest the library into another project, ensure your `.npmrc` is configured correctly, then run:
 
-<PackageManagerTabs command="install --registry https://your-npflared-node.dev" />
+<PackageManagerTabs command="install --registry https://your-babadeluxe-registry.dev" />
 
 ### Scoped Resolution
 For scoped packages (e.g., `@acme/math`), you can configure your `.npmrc` to automatically resolve the scope through your private node:
 
 ```txt title=".npmrc"
-@acme:registry=https://your-npflared-node.dev
-//your-npflared-node.dev/:_authToken=${NPFLARED_TOKEN}
+@acme:registry=https://your-babadeluxe-registry.dev
+//your-babadeluxe-registry.dev/:_authToken=${BABA_REGISTRY_TOKEN}
 ```

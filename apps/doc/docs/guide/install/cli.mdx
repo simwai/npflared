@@ -1,8 +1,8 @@
 import { PackageManagerTabs } from '@theme';
 
-# The Npflared CLI
+# Babadeluxe Registry CLI
 
-The `@npflared/cli` is your interface for managing the registry's emergent state. It is the synaptic bridge for installing and configuring your private npm node.
+The `@npflared/cli` is your interface for managing the registry's state. It is the synaptic bridge for installing and configuring your Babadeluxe-registry node.
 
 ## 1. Initial Signaling (Wrangler Login)
 Authenticate with your Cloudflare identity to establish the necessary trust relationship.
@@ -11,7 +11,7 @@ npx wrangler login
 ```
 
 ## 2. Manifesting the Node
-Run the Npflared installer to bootstrap your serverless registry from the CLI substrate.
+Run the installer to bootstrap your serverless registry from the CLI substrate.
 ```shell
 npx @npflared/cli install
 ```
@@ -21,7 +21,7 @@ And your private node is now active 🎉
 ## Core Commands
 
 ### `install`
-Manifests the Npflared infrastructure (Workers, D1, R2) within your Cloudflare account.
+Manifests the Babadeluxe Registry infrastructure (Workers, D1, R2) within your Cloudflare account.
 
 ### `token`
 Manage the granular permissions for your registry's nodes.

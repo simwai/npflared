@@ -2,10 +2,10 @@ import { PackageManagerTabs } from '@rspress/core/theme';
 
 # Manual Substrate Configuration
 
-For those who wish to manually manifest their Npflared node, bypassing the automated CLI genesis, follow these steps to establish your registry's foundations.
+For those who wish to manually manifest their Babadeluxe-registry node, bypassing the automated CLI genesis, follow these steps to establish your registry's foundations.
 
 ### 1. Extracting the Manifest
-Retrieve the core API substrate from the Npflared repository.
+Retrieve the core API substrate from the Babadeluxe Registry repository.
 
 ```shell
 npx degit Thomascogez/npflared/apps/api
@@ -21,7 +21,7 @@ Initialize the necessary node modules to support your registry's logic.
 <PackageManagerTabs command="install" />
 
 :::info
-Npflared is architected using `pnpm` as its primary dependency substrate.
+Babadeluxe Registry is architected using `pnpm` as its primary dependency substrate.
 :::
 
 ## 3. Configuring the Infrastructure
@@ -47,7 +47,7 @@ database_id = "D1_DATABASE_ID" # Replace D1_DATABASE_ID with your database ID
 ```
 
 ## 4. Deploying the Worker Node
-Once the configuration is synchronized, deploy your Npflared brain to the Cloudflare edge.
+Once the configuration is synchronized, deploy your registry brain to the Cloudflare edge.
 
 <PackageManagerTabs command="run deploy" />
 
