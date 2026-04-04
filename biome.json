@@ -1,94 +1,95 @@
 {
-	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-	"files": {
-		"includes": ["apps/**", "!**/node_modules", "!**/worker-configuration.d.ts", "!**/package.json"]
-	},
-	"vcs": {
-		"enabled": true,
-		"clientKind": "git",
-		"defaultBranch": "main",
-		"useIgnoreFile": true
-	},
-	"formatter": {
-		"enabled": true,
-		"formatWithErrors": false,
-		"indentStyle": "tab",
-		"lineEnding": "lf",
-		"lineWidth": 120
-	},
-	"assist": {
-		"enabled": true,
-		"actions": {
-			"source": {
-				"organizeImports": {
-					"level": "on",
-					"options": {}
-				}
-			}
-		}
-	},
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"recommended": true,
-			"suspicious": {
-				"recommended": true
-			},
-			"style": {
-				"recommended": true
-			},
-			"complexity": {
-				"recommended": true
-			},
-			"security": {
-				"recommended": true
-			},
-			"performance": {
-				"recommended": true
-			},
-			"correctness": {
-				"recommended": true
-			},
-			"a11y": {
-				"recommended": true
-			},
-			"nursery": {
-				"recommended": true
-			}
-		}
-	},
-	"javascript": {
-		"formatter": {
-			"enabled": true,
-			"arrowParentheses": "always",
-			"bracketSameLine": false,
-			"bracketSpacing": true,
-			"jsxQuoteStyle": "double",
-			"quoteProperties": "asNeeded",
-			"semicolons": "always",
-			"trailingCommas": "none"
-		}
-	},
-	"overrides": [
-		{
-			"includes": ["apps/api/**"],
-			"linter": {
-				"rules": {
-					"style": {
-						"noRestrictedImports": {
-							"level": "error",
-							"options": {
-								"paths": {
-									"hono-openapi": {
-										"message": "Please use zValidator #utils/validation",
-										"importNames": ["validator"]
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	]
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    "includes": ["apps/**", "!**/node_modules", "!**/worker-configuration.d.ts", "!**/package.json"]
+  },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "defaultBranch": "main",
+    "useIgnoreFile": true
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 120
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {}
+        }
+      }
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "recommended": true
+      },
+      "style": {
+        "recommended": true
+      },
+      "complexity": {
+        "recommended": true
+      },
+      "security": {
+        "recommended": true
+      },
+      "performance": {
+        "recommended": true
+      },
+      "correctness": {
+        "recommended": true
+      },
+      "a11y": {
+        "recommended": true
+      },
+      "nursery": {
+        "recommended": true
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "enabled": true,
+      "arrowParentheses": "always",
+      "bracketSameLine": false,
+      "bracketSpacing": true,
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "semicolons": "always",
+      "trailingCommas": "none"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/api/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "hono-openapi": {
+                    "message": "Please use zValidator #utils/validation",
+                    "importNames": ["validator"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

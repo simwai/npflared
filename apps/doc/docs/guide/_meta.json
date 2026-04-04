@@ -1,24 +1,24 @@
 [
-	"index",
-	{
-		"type": "dir",
-		"name": "install",
-		"label": "Install"
-	},
-	{
-		"type": "dir",
-		"name": "api",
-		"label": "API"
-	},
-	"architecture",
-	{
-		"type": "dir",
-		"name": "cookbook",
-		"label": "Cookbook"
-	},
-	{
-		"type": "dir",
-		"name": "contributing",
-		"label": "Contributing"
-	}
+  "index",
+  {
+    "type": "dir",
+    "name": "install",
+    "label": "Install"
+  },
+  {
+    "type": "dir",
+    "name": "api",
+    "label": "API"
+  },
+  "architecture",
+  {
+    "type": "dir",
+    "name": "cookbook",
+    "label": "Cookbook"
+  },
+  {
+    "type": "dir",
+    "name": "contributing",
+    "label": "Contributing"
+  }
 ]

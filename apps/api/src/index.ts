@@ -17,23 +17,23 @@ app.use("*", loadToken);
 const routes = app.route("/", tokenRouter).route("/", packageRouter);
 
 app
-	.get(
-		"/_/openapi.json",
-		openAPIRouteHandler(routes, {
-			documentation: {
-				info: { title: "Npflared registry", version },
-				security: [{ bearerAuth: [] }]
-			}
-		})
-	)
-	.get("/_/docs", Scalar({ theme: "saturn", url: "/_/openapi.json" }));
+  .get(
+    "/_/openapi.json",
+    openAPIRouteHandler(routes, {
+      documentation: {
+        info: { title: "Npflared registry", version },
+        security: [{ bearerAuth: [] }]
+      }
+    })
+  )
+  .get("/_/docs", Scalar({ theme: "saturn", url: "/_/openapi.json" }));
 
 app.all("*", () => {
-	throw HttpError.notFound("Unsupported URL");
+  throw HttpError.notFound("Unsupported URL");
 });
 
 export default {
-	async fetch(request: Request, env: Env, ctx: ExecutionContext) {
-		return app.fetch(request, env, ctx);
-	}
+  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    return app.fetch(request, env, ctx);
+  }
 };

@@ -1,17 +1,17 @@
 {
-	"compilerOptions": {
-		"target": "es2022",
-		"module": "esnext",
-		"moduleResolution": "bundler",
-		"strict": true,
-		"skipLibCheck": true,
-		"lib": ["ESNext"],
-		"types": ["@cloudflare/vitest-pool-workers"],
-		"jsx": "react-jsx",
-		"jsxImportSource": "hono/jsx",
-		"isolatedModules": false,
-		"incremental": true,
-		"noUncheckedIndexedAccess": true,
-		"resolveJsonModule": true
-	}
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "lib": ["ESNext"],
+    "types": ["@cloudflare/vitest-pool-workers"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "isolatedModules": false,
+    "incremental": true,
+    "noUncheckedIndexedAccess": true,
+    "resolveJsonModule": true
+  }
 }

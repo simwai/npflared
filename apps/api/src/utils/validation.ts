@@ -5,13 +5,13 @@ import type { ZodType } from "zod";
 import { HttpError } from "./http";
 
 export const zValidator = <T extends ZodType, Target extends keyof ValidationTargets>(target: Target, schema: T) =>
-	zv(target, schema, (result) => {
-		if (!result.success) {
-			throw HttpError.badRequest(
-				result.error
-					.flat()
-					.map(({ message, path }) => `${path?.join(".") ?? ""}: ${message}`)
-					.join(", ")
-			);
-		}
-	});
+  zv(target, schema, (result) => {
+    if (!result.success) {
+      throw HttpError.badRequest(
+        result.error
+          .flat()
+          .map(({ message, path }) => `${path?.join(".") ?? ""}: ${message}`)
+          .join(", ")
+      );
+    }
+  });

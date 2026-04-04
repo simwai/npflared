@@ -5,39 +5,39 @@ import { tokenTable } from "#db/schema";
 import type { validators } from "#routers/token/validators";
 
 export const tokenService = {
-	async createToken(tokenData: z.infer<typeof validators.post.request.json>) {
-		const now = Date.now();
+  async createToken(tokenData: z.infer<typeof validators.post.request.json>) {
+    const now = Date.now();
 
-		const insertQueryResult = await db
-			.insert(tokenTable)
-			.values({
-				name: tokenData.name,
-				token: crypto.randomUUID(),
-				scopes: tokenData.scopes,
-				createdAt: now,
-				updatedAt: now
-			})
-			.returning();
+    const insertQueryResult = await db
+      .insert(tokenTable)
+      .values({
+        name: tokenData.name,
+        token: crypto.randomUUID(),
+        scopes: tokenData.scopes,
+        createdAt: now,
+        updatedAt: now
+      })
+      .returning();
 
-		const [token] = insertQueryResult;
+    const [token] = insertQueryResult;
 
-		return token;
-	},
+    return token;
+  },
 
-	async listTokens() {
-		const tokens = await db.query.tokenTable.findMany();
-		return tokens;
-	},
+  async listTokens() {
+    const tokens = await db.query.tokenTable.findMany();
+    return tokens;
+  },
 
-	async getToken(token: string) {
-		const targetedToken = await db.query.tokenTable.findFirst({
-			where: (table, { eq }) => eq(table.token, token)
-		});
+  async getToken(token: string) {
+    const targetedToken = await db.query.tokenTable.findFirst({
+      where: (table, { eq }) => eq(table.token, token)
+    });
 
-		return targetedToken;
-	},
+    return targetedToken;
+  },
 
-	async deleteToken(token: string) {
-		await db.delete(tokenTable).where(eq(tokenTable.token, token));
-	}
+  async deleteToken(token: string) {
+    await db.delete(tokenTable).where(eq(tokenTable.token, token));
+  }
 };
