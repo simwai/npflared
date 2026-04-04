@@ -1,12 +1,14 @@
-# Package
+# Package Operations
 
-## Get a package
+The API provides the substrate for your package artifacts to be manifest and retrieved. In order to interact with these endpoints, you will need to establish an authenticated connection with the appropriate scope.
+
+## Retrieving a Package (Ingestion)
 
 :::info
-In order to get a package, you will need to be authenticated and having at least the `package:read` permission on the targeted package.
+In order to retrieve a package, you will need to be authenticated and having at least the `package:read` permission on the targeted package.
 :::
 
-You can get a package by sending a `GET` request to the `/:package` endpoint.
+You can retrieve a package's metadata by sending a `GET` request to the `/:package` endpoint.
 
 ```bash
 curl -X GET https://my-npflared.dev/package
@@ -18,7 +20,7 @@ curl -X GET https://my-npflared.dev/@scope/package
 The `:package` parameter is the package you want to get. It can be a simple name or a scoped name.
 :::
 
-## Publish a package 
+## Manifesting a Package (Publication)
 
 :::info
 In order to publish a package, you will need to be authenticated and having at least the `package:write` permission on the targeted package.
@@ -33,6 +35,6 @@ PUT https://my-npflared.dev/package
 PUT https://my-npflared.dev/@scope/package
 ```
 
-Here an overview of what happen when you publish a package:
+The flow of this publication event involves several synergistic interactions between the Worker, D1 for metadata storage, and R2 for the package's binary tarball.
 
 ![Publish a package](/publish-flow.png)

@@ -10,6 +10,7 @@
 		"name": "api",
 		"label": "API"
 	},
+	"architecture",
 	{
 		"type": "dir",
 		"name": "cookbook",

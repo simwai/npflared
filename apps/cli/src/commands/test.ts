@@ -6,8 +6,8 @@ import { cancel, isCancel, log, password, spinner, text } from "@clack/prompts";
 import chalk from "chalk";
 import dedent from "dedent";
 import { $ } from "zx";
-import { createTokenProgrammatically } from './token/shared';
-import type { TokenScopeType } from './token/types';
+import { createTokenProgrammatically } from "./token/shared";
+import type { TokenScopeType } from "./token/types";
 
 const cliSpinner = spinner();
 
@@ -37,15 +37,15 @@ type PublishedSet = {
 
 type RegistryTokenScope = {
 	type:
-	| "package:read"
-	| "package:write"
-	| "package:read+write"
-	| "user:read"
-	| "user:write"
-	| "user:read+write"
-	| "token:read"
-	| "token:write"
-	| "token:read+write";
+		| "package:read"
+		| "package:write"
+		| "package:read+write"
+		| "user:read"
+		| "user:write"
+		| "user:read+write"
+		| "token:read"
+		| "token:write"
+		| "token:read+write";
 	values: string[];
 };
 

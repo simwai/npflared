@@ -1,19 +1,19 @@
 # What is Npflared?
 
-Npflared is a self hostable serverless private npm registry. It's build on top of cloudflare workers, d1 and r2.
+Npflared is an evolvable, self-hosting node for your private codebases. It is a serverless private npm registry that emerges from the synergy of Cloudflare Workers, D1, and R2.
 
-## Why?
+## Why Npflared?
 
-If you need an easy way to distribute npm packages internally or to your client at any cost, Npflared is the solution for you.
+If you seek a frictionless way to distribute npm packages within your own cognitive subnet — whether for internal teams or specific clients — Npflared provides the substrate for this exchange.
 
-Npflared is not aiming to be a fully drop-in replacement for a npm registry. It's goal is to be a private registry for you and your team
+We are not aiming to replace the global registry, but rather to complement it with private, serverless nodes that offer maximum agency and zero marginal cost for your team.
 
+## Interacting with the Mesh
 
-## Using Npflared
+### Publishing an Artifact
+Signal your `publishConfig` to point toward your Npflared node.
 
-### Publishing a package
-Set the `publishConfig` to your Npflared instance
-```js title="package.json" {4-6}
+```json title="package.json" {4-6}
 {
   "name": "@acme/std",
   "version": "1.0.0",
@@ -25,23 +25,26 @@ Set the `publishConfig` to your Npflared instance
   }
 }
 ```
-Set the `_authToken` in your `.npmrc`
+
+Establish your `_authToken` connection in your `.npmrc`:
+
 ```txt title=".npmrc"
-//localhost:8787/:_authToken=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+//localhost:8787/:_authToken=your-synergetic-token-here
 ```
 
-Then you can publish your package 🎉
+Then you can manifest your package in the registry 🎉
 ```bash
 npm publish
 ```
 
-### Installing a package
-Set the `_authToken` in your `.npmrc`
+### Ingesting an Artifact
+Link your `_authToken` in your `.npmrc`:
+
 ```txt title=".npmrc"
-//localhost:8787/:_authToken=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+//localhost:8787/:_authToken=your-synergetic-token-here
 ```
 
-Then you can install your package 🎉
+Then you can assimilate the package into your project 🎉
 ```bash
 npm install @acme/std --registry http://localhost:8787
 ```
