@@ -135,8 +135,8 @@ async function createAndPublishTestPackages(baseTmpDir: string, cfg: RegistryCon
 }
 
 async function runSmokeTest(cfg: RegistryConfig): Promise<PublishedSet> {
-	const publishTmpDir = await mkdtemp(join(tmpdir(), "npflared-publish-"));
-	const installTmpDir = await mkdtemp(join(tmpdir(), "npflared-install-"));
+	const publishTmpDir = await mkdtemp(join(tmpdir(), "babadeluxe-registry-publish-"));
+	const installTmpDir = await mkdtemp(join(tmpdir(), "babadeluxe-registry-install-"));
 
 	const cleanup = () => {
 		try {
@@ -178,7 +178,7 @@ async function runSmokeTest(cfg: RegistryConfig): Promise<PublishedSet> {
 }
 
 async function runCompatTests(cfg: RegistryConfig, published: PublishedSet) {
-	const compatDir = await mkdtemp(join(tmpdir(), "npflared-compat-"));
+	const compatDir = await mkdtemp(join(tmpdir(), "babadeluxe-registry-compat-"));
 
 	const cleanup = () => {
 		try {
@@ -215,7 +215,7 @@ async function runCompatTests(cfg: RegistryConfig, published: PublishedSet) {
 			join(fixtureDir, "package.json"),
 			JSON.stringify(
 				{
-					name: "npflared-compat-fixture",
+					name: "babadeluxe-registry-compat-fixture",
 					version: "0.0.0",
 					private: true,
 					dependencies: {
@@ -251,7 +251,7 @@ export const test = async ({ local = false, port = 8787 }: TestOptions = {}) => 
 		log.info(`Using local dev registry at ${deployedUrl}`);
 	} else {
 		const urlInput = await text({
-			message: "Enter your deployed worker URL (from npflared install output):",
+			message: "Enter your deployed worker URL (from babadeluxe-registry install output):",
 			validate(value) {
 				const v = value ?? "";
 				if (!v.startsWith("http://") && !v.startsWith("https://")) {
@@ -265,8 +265,8 @@ export const test = async ({ local = false, port = 8787 }: TestOptions = {}) => 
 	}
 
 	const testScopeInput = await text({
-		message: "Enter test scope (default: @npflared-test):",
-		initialValue: "@npflared-test",
+		message: "Enter test scope (default: @babadeluxe-registry-test):",
+		initialValue: "@babadeluxe-registry-test",
 		validate(value) {
 			const v = value ?? "";
 			if (!v.startsWith("@")) {

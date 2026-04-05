@@ -1,11 +1,13 @@
-# Tokens
+# Token Sovereignty: Managing Access
 
-## Generate a new token 
+The Babadeluxe Registry provides a robust framework for managing access tokens, ensuring that your package domain remains secure yet accessible.
+
+## Establishing a New Token
 :::info
-In order to generate a new token, you will need to be authenticated and having at least the `token:write` permission with value `*`.
+To generate a new token, you must be authenticated and possess at least the `token:write` permission with value `*`.
 :::
 
-You will need to send a `POST` request to the `/-/npm/v1/tokens` endpoint with the following body:
+To create a new token, send a `POST` request to the `/-/npm/v1/tokens` endpoint with the following body:
 
 ```js
 {
@@ -23,7 +25,7 @@ You will need to send a `POST` request to the `/-/npm/v1/tokens` endpoint with t
 }
 ```
 
-You can send has many scopes as you want.
+You can include as many scopes as your vision requires.
 
 | Scope type | Description |
 | --- | --- |
@@ -35,37 +37,67 @@ You can send has many scopes as you want.
 | `token:read+write` | Read and write access to a token |
 
 :::info
-The `values` property is an array of strings. You can use `*` to match all packages or provide exact package names (including scopes, e.g., `@my-scope/my-pkg`).
+The `values` property is an array of strings. You can use:
+- `*` to match all packages.
+- Exact package names (including scopes, e.g., `@my-scope/my-pkg`).
+- Glob patterns (e.g., `@my-scope/*` to match all packages in a scope).
 :::
 
-## Get all tokens
+## Enumerating All Tokens
 
-You can get all tokens by sending a `GET` request to the `/-/npm/v1/tokens` endpoint.
+You can retrieve all tokens by sending a `GET` request to the `/-/npm/v1/tokens` endpoint.
 
 ```bash
-curl -X GET https://my-npflared.dev/-/npm/v1/tokens
+curl -X GET https://your-babadeluxe-registry.dev/-/npm/v1/tokens
 ```
 
-## Get a token
+## Retrieving a Single Token
 
-You can get a token by sending a `GET` request to the `/-/npm/v1/tokens/token/:token` endpoint.
+You can inspect a specific token by sending a `GET` request to the `/-/npm/v1/tokens/token/:token` endpoint.
 
 ```bash
-curl -X GET https://my-npflared.dev/-/npm/v1/tokens/token/my-token
+curl -X GET https://your-babadeluxe-registry.dev/-/npm/v1/tokens/token/my-token
 ```
 
 :::info
-The `:token` parameter is the token you want to get.
+The `:token` parameter is the token you wish to retrieve.
 :::
 
-## Delete a token
+## Excising a Token
 
 You can delete a token by sending a `DELETE` request to the `/-/npm/v1/tokens/token/:token` endpoint.
 
 ```bash
-curl -X DELETE https://my-npflared.dev/-/npm/v1/tokens/token/my-token
+curl -X DELETE https://your-babadeluxe-registry.dev/-/npm/v1/tokens/token/my-token
 ```
 
 :::info
-The `:token` parameter is the token you want to delete.
+The `:token` parameter is the token you wish to delete.
 :::
+
+---
+
+## Permission Flow Architecture
+
+The following diagram illustrates how the `withAccess` middleware and `assertTokenAccess` function verify permissions during an API request.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#2e0b5e', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#ff00ff', 'lineColor': '#00ffff', 'secondaryColor': '#0f0524', 'tertiaryColor': '#1a0a3a' }}}%%
+graph TD
+    Request[HTTP Request] --> Middleware[withAccess Middleware]
+    Middleware -- Extract Token --> DB[(D1 Database)]
+    DB -- Return Token Data --> Middleware
+    Middleware -- Pass Token --> Router[API Router]
+    Router -- Call assertTokenAccess --> Access[Access Control Logic]
+    Access -- Match Scopes (micromatch) --> Result{Permission Granted?}
+    Result -- Yes --> Handler[Route Handler]
+    Result -- No --> Forbidden[403 Forbidden]
+
+    style Request fill:#0f0524,stroke:#ff00ff,stroke-width:2px,color:#ffffff
+    style Middleware fill:#2e0b5e,stroke:#00ffff,stroke-width:2px,color:#ffffff
+    style DB fill:#1a0a3a,stroke:#ff00ff,stroke-width:2px,color:#ffffff
+    style Router fill:#2e0b5e,stroke:#00ffff,stroke-width:2px,color:#ffffff
+    style Access fill:#1a0a3a,stroke:#00ffff,stroke-width:2px,color:#ffffff
+    style Handler fill:#0f0524,stroke:#ff00ff,stroke-width:2px,color:#ffffff
+    style Forbidden fill:#1a0a3a,stroke:#ff00ff,stroke-width:2px,color:#ffffff
+```

@@ -1,0 +1,96 @@
+# CLI Reference: The Babadeluxe Orchestrator
+
+The Babadeluxe Registry CLI (`@babadeluxe-registry/cli`) is the primary instrument for managing your private package domain. It orchestrates deployment, token management, and verification.
+
+## Universal Command Line Protocol
+
+Installation is optional; you may invoke the CLI directly through the `npx` executor:
+
+```bash
+npx @babadeluxe-registry/cli <command>
+```
+
+:::info
+Most CLI interactions communicate directly with your Cloudflare account via Wrangler or your D1 database. Ensure you are authenticated before proceeding:
+```bash
+npx wrangler login
+```
+:::
+
+---
+
+## Command Protocols
+
+### `install`
+The `install` protocol facilitates the initial deployment of your Babadeluxe Registry instance. It will:
+1. Clone the API source code into a local subdirectory (`~/.babadeluxe-registry`).
+2. Assist in the creation or selection of a D1 database and an R2 bucket.
+3. Configure `wrangler.json` for your specific environment.
+4. Execute initial database migrations.
+5. Deploy the worker into the Cloudflare global network.
+6. Generate your initial administrative token.
+
+```bash
+npx @babadeluxe-registry/cli install
+```
+
+### `token`
+Manage access tokens for your packages. These commands interact **directly** with the D1 database, either locally or remotely.
+
+#### `token add`
+Create a new token for one or more packages.
+- `--package, -p`: Package name(s). Can be repeated or comma-separated (e.g., `-p @scope/a -p @scope/b`).
+- `--mode, -m`: Permission mode (`package:read`, `package:write`, or `package:read+write`).
+- `--name, -n`: A descriptive label for the token.
+- `--local, -l`: Operate upon the local D1 database.
+
+#### `token list`
+List all tokens granting access to a specific package.
+- `--package, -p`: The full package name (e.g., `@scope/pkg`).
+- `--local, -l`: Operate upon the local D1 database.
+
+#### `token list-scope`
+Display a permission matrix for all packages within a given scope.
+- `--scope, -s`: The scope name (e.g., `@my-scope`).
+- `--local, -l`: Operate upon the local D1 database.
+
+#### `token lookup`
+Inspect a token and reveal its associated packages and permissions.
+- `--token, -t`: The token value to inspect.
+- `--local, -l`: Operate upon the local D1 database.
+
+#### `token remove` (alias: `delete`)
+Excision of a single token by its value.
+- `--token, -t`: The token value to delete.
+- `--local, -l`: Operate upon the local D1 database.
+
+#### `token clear`
+Purge all tokens that grant access to a specific package.
+- `--package, -p`: The package name.
+- `--local, -l`: Operate upon the local D1 database.
+
+### `test`
+Verify the integrity of your Babadeluxe Registry deployment by publishing and installing a synthetic test package.
+- `--local`: Utilize the local development worker URL (`http://127.0.0.1:8787`).
+- `--port`: Override the port for the local worker.
+
+```bash
+npx @babadeluxe-registry/cli test
+```
+
+### `clean`
+Removes the local directory (`~/.babadeluxe-registry`) containing cloned source code and ephemeral configurations.
+
+```bash
+npx @babadeluxe-registry/cli clean
+```
+
+---
+
+## Conceptual Framework
+
+### Direct Database Sovereignty
+The CLI is designed for direct database interaction. This allows you to manage tokens even if your API is currently unreachable, provided you possess the necessary Cloudflare credentials via Wrangler.
+
+### Local Development Synchronization (`--local`)
+Many protocols support a `--local` flag, designed for contributors or those operating the registry locally. When invoked, the CLI targets the local D1 instance rather than the production deployment.

@@ -21,7 +21,7 @@ app
 		"/_/openapi.json",
 		openAPIRouteHandler(routes, {
 			documentation: {
-				info: { title: "Npflared registry", version },
+				info: { title: "Babadeluxe Registry registry", version },
 				security: [{ bearerAuth: [] }]
 			}
 		})

@@ -1,16 +1,52 @@
 import { PackageManagerTabs } from '@theme';
 
-# Using the CLI
+# Using the Orchestrator: CLI Installation
 
-## 1. Login with wrangler on your terminal
+The Babadeluxe Registry CLI (`@babadeluxe-registry/cli`) is the most direct path to a functional registry.
+
+## 1. Cloudflare Authentication
+Before invocation, ensure you have authenticated with your Cloudflare account via the Wrangler CLI:
 ```shell
 npx wrangler login
 ```
 
-## 2. Run the npflared installer
+## 2. Invoking the Babadeluxe Installer
+Simply run the following command to begin the installation protocol:
 ```shell
-npx @npflared/cli install
+npx @babadeluxe-registry/cli install
 ```
 
-And we are done 🎉
+With these two steps, you have achieved a functional registry instance. 🎉
 
+:::tip
+For further exploration of the CLI's capabilities, see the [CLI Reference](../cli.mdx).
+:::
+
+---
+
+## Deployment Logic Flow
+
+The following diagram reveals the sophisticated choreography of the CLI installation process.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#2e0b5e', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#ff00ff', 'lineColor': '#00ffff', 'secondaryColor': '#0f0524', 'tertiaryColor': '#1a0a3a' }}}%%
+graph TD
+    CLI[Babadeluxe CLI] --> Clone[Clone API Repository]
+    Clone --> DB[Create/Select D1 Database]
+    DB --> R2[Create/Select R2 Bucket]
+    R2 --> Config[Generate wrangler.json]
+    Config --> Migrate[Execute D1 Migrations]
+    Migrate --> Deploy[Deploy Worker to Cloudflare]
+    Deploy --> Token[Generate Admin Token]
+    Token --> Done[Installation Complete]
+
+    style CLI fill:#0f0524,stroke:#ff00ff,stroke-width:2px,color:#ffffff
+    style Clone fill:#2e0b5e,stroke:#00ffff,stroke-width:2px,color:#ffffff
+    style DB fill:#1a0a3a,stroke:#ff00ff,stroke-width:2px,color:#ffffff
+    style R2 fill:#1a0a3a,stroke:#00ffff,stroke-width:2px,color:#ffffff
+    style Config fill:#2e0b5e,stroke:#00ffff,stroke-width:2px,color:#ffffff
+    style Migrate fill:#1a0a3a,stroke:#ff00ff,stroke-width:2px,color:#ffffff
+    style Deploy fill:#2e0b5e,stroke:#00ffff,stroke-width:2px,color:#ffffff
+    style Token fill:#1a0a3a,stroke:#ff00ff,stroke-width:2px,color:#ffffff
+    style Done fill:#0f0524,stroke:#ff00ff,stroke-width:2px,color:#ffffff
+```

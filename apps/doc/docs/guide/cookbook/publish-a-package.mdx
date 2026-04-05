@@ -1,94 +1,77 @@
 import { PackageManagerTabs } from '@theme';
 
-# Publish a package 
-In this quick run through, we will see how you can simply publish a package into your `Nplfared` registry.
-This will allow you easily share private package for your project and share them with your team 🤝.
+# Publishing: A Journey from Local Creation to Registry Nexus
 
-## Create a package
-Let's create a simple package that will be published into our registry.
+In this brief exploration, we will observe the path of a package from its local inception to its distribution through your Babadeluxe Registry. This process facilitates the seamless sharing of private packages within your team or ecosystem.
+
+## 1. Creating Your Creation
+Let us begin by initializing a modest package:
 
 <PackageManagerTabs command="init" />
 
-Let's add some code to our package
+Next, we shall imbue our package with functionality:
 
 ```js title="index.js"
-
 export const add = (a, b) => a + b;
-
 export const sub = (a, b) => a - b;
-
 export const mul = (a, b) => a * b;
-
 export const div = (a, b) => a / b;
 ```
 
-Now we need to update our `package.json` file
+Now, we must update the `package.json` to acknowledge the registry's presence:
 
 ```json {6-9} title="package.json"
 {
   "name": "@acme/math",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "publishConfig": {
     "access": "public",
-    "registry": "http://your-npflared-registry.dev"
+    "registry": "http://your-babadeluxe-registry.dev"
   },
   "exports": {
     ".": "./index.js"
-  },
+  }
 }
 ```
-You need to add a `publishConfig` property to our `package.json` file. 
-This property will allow us to specify the registry where we want to publish our package.
-You will need to replace `http://your-npflared-registry.dev` with your own registry url.
+Replacing `http://your-babadeluxe-registry.dev` with your instance's unique URI.
 
-## Generate a token 
-> If you already have a token with dedicated permission you can skip this section
+## 2. Generating Your Credentials
+:::tip
+If you have already established a token with the necessary permissions, you may bypass this step.
+:::
 
-Check [this](/guide/api/tokens) in order to generate a new token
+Consult the [Token Management Reference](/guide/api/tokens) to generate a new credential.
 
-## Setup you registry access
-In order to authenticate to your registry you will need to add a `.npmrc` file with the following content
+## 3. Establishing Local Authentication
+To authenticate with your registry, you must establish an `.npmrc` file with your token:
 
 ```txt title=".npmrc"
-//your-npflared-registry.dev/:_authToken=YOUR_AUTH_TOKEN
+//your-babadeluxe-registry.dev/:_authToken=YOUR_AUTH_TOKEN
 ```
 
-## Hit the publish button 🚀
+## 4. Broadcasting Your Creation 🚀
 
 <PackageManagerTabs command="publish" />
 
+Your package is now part of the Babadeluxe Registry ecosystem, ready to be consumed and evolved.
 
-You can now download, upgrade and consume your package 🔥
+## 5. Integrating Your Creation
 
-## Installing your package
+First, ensure your project's `.npmrc` is configured with a token possessing the necessary accesses. Then, install your package:
 
-First make to have setup an `.npmrc` file with a token having the right accesses.
-
-Then you can run the following command:
-
-<PackageManagerTabs command="install --registry http://your-npflared-registry.dev" />
+<PackageManagerTabs command="install --registry http://your-babadeluxe-registry.dev" />
 
 --- 
 
-If you are using scoped package eg `@acme/math` you can add the following to your `.npmrc` file
+### Scoped Package Resolution
+If you are utilizing scoped packages, such as `@acme/math`, you can configure your `.npmrc` to automatically resolve them via your private registry:
+
 ```txt title=".npmrc"
-@acme:registry=http://your-npflared-registry.dev
+@acme:registry=http://your-babadeluxe-registry.dev
+//your-babadeluxe-registry.dev/:_authToken=${BABADELUXE_REGISTRY_AUTH_TOKEN}
 ```
-In order to automatically resolve your scoped package with your private registry.
+Storing your `BABADELUXE_REGISTRY_AUTH_TOKEN` within your environment variables for security and portability.
 
-### Personal note
-For example I have multiple package in my private registry scoped with `@thomascogez` like (`@thomascogez/common`, `@thomascogez/tsconfig` `@thomascogez/biome-config`, ...)
-That I use in my projects. 
+## 6. Evolving Your Creation
 
-In every project want to use them i add the following to my `.npmrc` file
-```txt title=".npmrc"
-@thomascogez:registry=http://your-npflared-registry.dev
-//your-npflared-registry.dev/:_authToken=${NPFLARED_AUTH_TOKEN} # <- NPFLARED_AUTH_TOKEN is stored on my machine env
-```
-
-## Publish a new version of your package 
-
-If you make change to your package, you will need to publish a new version. 
-This is really easy, you will need to bump the package version in your `package.json` file and then hit the publish button again !
+When your package undergoes a state change, simply update the version number in `package.json` and publish again to distribute the latest evolution.

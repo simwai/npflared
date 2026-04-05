@@ -42,11 +42,11 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "obj
 
 const isTokenRow = (v: unknown): v is TokenRow =>
 	isRecord(v) &&
-	typeof v["token"] === "string" &&
-	typeof v["name"] === "string" &&
-	typeof v["scopes"] === "string" &&
-	typeof v["created_at"] === "number" &&
-	typeof v["updated_at"] === "number";
+	typeof v.token === "string" &&
+	typeof v.name === "string" &&
+	typeof v.scopes === "string" &&
+	typeof v.created_at === "number" &&
+	typeof v.updated_at === "number";
 
 const isScopeOnly = (v: string) => v.startsWith("@") && !v.includes("/");
 
@@ -276,7 +276,7 @@ VALUES ('${tokenValue}', '${tokenLabel.replace(/'/g, "''")}', '${scopesJson}', $
 };
 
 const createToken = async (args: CreateTokenArgs) => {
-	intro(chalk.bold(`npflared  token add  ${chalk.gray(args.local ? "local" : "remote")}`));
+	intro(chalk.bold(`babadeluxe-registry  token add  ${chalk.gray(args.local ? "local" : "remote")}`));
 	await ensureRemoteCloudflareAccount(args.local);
 
 	const packageNames = args.packages?.length ? args.packages : await promptPackageNames();
@@ -305,8 +305,8 @@ const createToken = async (args: CreateTokenArgs) => {
 				...packageNames.map((pkg) => `  - ${chalk.white(pkg)}`),
 				"",
 				chalk.gray("Add to .npmrc:"),
-				chalk.gray(`  @babadeluxe:registry=https://your-npflared-url`),
-				chalk.gray(`  //your-npflared-url/:_authToken=${tokenValue}`),
+				chalk.gray(`  @babadeluxe:registry=https://your-babadeluxe-registry-url`),
+				chalk.gray(`  //your-babadeluxe-registry-url/:_authToken=${tokenValue}`),
 				""
 			].join("\n")
 		);
@@ -319,7 +319,7 @@ const createToken = async (args: CreateTokenArgs) => {
 };
 
 const clearTokensForPackage = async (args: ClearTokensArgs) => {
-	intro(chalk.bold(`npflared  token clear  ${chalk.gray(args.local ? "local" : "remote")}`));
+	intro(chalk.bold(`babadeluxe-registry  token clear  ${chalk.gray(args.local ? "local" : "remote")}`));
 	await ensureRemoteCloudflareAccount(args.local);
 
 	const packageName = args.package ?? (await promptPackageName());
@@ -340,7 +340,7 @@ const clearTokensForPackage = async (args: ClearTokensArgs) => {
 };
 
 const removeTokenByValue = async (args: RemoveTokenArgs) => {
-	intro(chalk.bold(`npflared  token delete  ${chalk.gray(args.local ? "local" : "remote")}`));
+	intro(chalk.bold(`babadeluxe-registry  token delete  ${chalk.gray(args.local ? "local" : "remote")}`));
 	await ensureRemoteCloudflareAccount(args.local);
 
 	const tokenValue = args.token ?? (await promptTokenValue());
@@ -361,9 +361,9 @@ const removeTokenByValue = async (args: RemoveTokenArgs) => {
 };
 
 const listTokensForPackage = async (args: ListTokensArgs) => {
-	intro(chalk.bold(`npflared  token list  ${chalk.gray(args.local ? "local" : "remote")}`));
+	intro(chalk.bold(`babadeluxe-registry  token list  ${chalk.gray(args.local ? "local" : "remote")}`));
 
-	let packageName = args.package ?? (await promptPackageName());
+	const packageName = args.package ?? (await promptPackageName());
 
 	if (isScopeOnly(packageName)) {
 		log.warn(`"${packageName}" is a scope, not a package. Redirecting to scope view…`);
@@ -422,7 +422,7 @@ const listTokensForPackage = async (args: ListTokensArgs) => {
 
 const listTokensForScope = async (args: ListScopeArgs) => {
 	if (!args.package) {
-		intro(chalk.bold(`npflared  token list-scope  ${chalk.gray(args.local ? "local" : "remote")}`));
+		intro(chalk.bold(`babadeluxe-registry  token list-scope  ${chalk.gray(args.local ? "local" : "remote")}`));
 	}
 
 	const inputScope = args.scope ?? (await promptScopeName());
@@ -503,7 +503,7 @@ const listTokensForScope = async (args: ListScopeArgs) => {
 };
 
 const lookupToken = async (args: LookupTokenArgs) => {
-	intro(chalk.bold(`npflared  token lookup  ${chalk.gray(args.local ? "local" : "remote")}`));
+	intro(chalk.bold(`babadeluxe-registry  token lookup  ${chalk.gray(args.local ? "local" : "remote")}`));
 	await ensureRemoteCloudflareAccount(args.local);
 
 	const tokenValue = args.token ?? (await promptTokenValue());
@@ -562,7 +562,7 @@ const lookupToken = async (args: LookupTokenArgs) => {
 
 export const tokenCommands: CommandModule = {
 	command: "token <sub>",
-	describe: "Manage npflared tokens (multi-package read/write permissions)",
+	describe: "Manage babadeluxe-registry tokens (multi-package read/write permissions)",
 	builder: (yargs: Argv) =>
 		yargs
 			.command(

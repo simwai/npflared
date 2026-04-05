@@ -1,4 +1,4 @@
-name = "npflared"
+name = "babadeluxe-registry"
 main = "src/index.ts"
 compatibility_date = "2026-01-07"
 compatibility_flags = ["nodejs_compat"]
@@ -8,13 +8,13 @@ FALLBACK_REGISTRY_ENDPOINT = "https://registry.npmjs.org"
 
 [[r2_buckets]]
 binding = "BUCKET"
-bucket_name = "npflared"
+bucket_name = "babadeluxe-registry"
 
 [[d1_databases]]
 # This is the binding you use as env.DB in your worker
 binding = "DB"
 # Human-readable name for the database
-database_name = "npflared"
+database_name = "babadeluxe-registry"
 # For local dev this just needs to be a non-empty string; for remote it should
 # match the real D1 database ID from `wrangler d1 create`
 database_id = "1"

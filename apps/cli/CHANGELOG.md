@@ -1,4 +1,4 @@
-# @npflared/cli
+# @babadeluxe-registry/cli
 
 ## 0.1.3
 

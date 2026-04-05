@@ -5,6 +5,7 @@
 		"name": "install",
 		"label": "Install"
 	},
+	"cli",
 	{
 		"type": "dir",
 		"name": "api",

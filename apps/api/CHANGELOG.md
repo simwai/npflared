@@ -1,4 +1,4 @@
-# @npflared/api
+# @babadeluxe-registry/api
 
 ## 0.1.0
 

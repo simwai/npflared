@@ -25,7 +25,7 @@ function getPackageManagerAgent(): string {
 
 async function runWrangler(args: string[], options: { cwd?: string } = {}): Promise<ProcessOutput> {
 	const packageManager = getPackageManagerAgent();
-	// @ts-ignore
+	// @ts-expect-error
 	const command = getCommand(packageManager, "execute", args);
 	return await executeCommand(command, { cwd: options.cwd });
 }
@@ -164,7 +164,7 @@ type ExecuteD1TextOptions = ExecuteD1BaseOptions & {
 	schema?: never;
 };
 
-type ExecuteD1RowsOptions<TRow = unknown> = ExecuteD1BaseOptions & {
+type ExecuteD1RowsOptions<_TRow = unknown> = ExecuteD1BaseOptions & {
 	json?: true;
 	rows: true;
 	schema?: never;
@@ -271,7 +271,7 @@ export async function executeD1<TRow = unknown, TSchema extends z.ZodTypeAny = z
 	let args: string[];
 
 	if (forceFile) {
-		const tempDir = await mkdtemp(join(tmpdir(), "npflared-sql-"));
+		const tempDir = await mkdtemp(join(tmpdir(), "babadeluxe-registry-sql-"));
 		const sqlFile = join(tempDir, "query.sql");
 		await writeFile(sqlFile, sql, "utf8");
 		args = ["d1", "execute", "DB", local ? "--local" : "--remote", "--file", sqlFile];

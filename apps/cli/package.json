@@ -1,5 +1,5 @@
 {
-	"name": "@npflared/cli",
+	"name": "@babadeluxe-registry/cli",
 	"version": "0.1.3",
 	"type": "module",
 	"scripts": {
@@ -8,12 +8,12 @@
 		"prepublishOnly": "pnpm run build"
 	},
 	"bin": {
-		"npflared": "./dist/index.mjs"
+		"babadeluxe-registry": "./dist/index.mjs"
 	},
 	"keywords": [
 		"npm",
 		"registry",
-		"npflared"
+		"babadeluxe-registry"
 	],
 	"license": "ISC",
 	"devDependencies": {
