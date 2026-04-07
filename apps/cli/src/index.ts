@@ -15,11 +15,11 @@ process.on("unhandledRejection", (error) => {
 });
 
 await yargs(hideBin(process.argv))
-	.scriptName("npflared")
+	.scriptName("babadeluxe-registry")
 	.fail(false)
 	.command(
 		"install",
-		"Configure and deploy your own npflared instance on your cloudflare account",
+		"Configure and deploy your own babadeluxe-registry instance on your cloudflare account",
 		(yargs) => yargs,
 		async () => {
 			await install();

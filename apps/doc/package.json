@@ -1,5 +1,5 @@
 {
-	"name": "@npflared/doc",
+	"name": "@babadeluxe-registry/doc",
 	"private": true,
 	"scripts": {
 		"dev": "rspress dev",

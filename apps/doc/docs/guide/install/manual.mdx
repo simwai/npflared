@@ -1,69 +1,67 @@
-import { PackageManagerTabs } from '@rspress/core/theme';
+import { PackageManagerTabs } from "@theme";
 
-# Manual
+# Manual Transcendence: The Traditional Path
 
-### 1. Clone the project
-```shell
-npx degit Thomascogez/npflared/apps/api
+### 1. Cloning the Collective Code
+To begin the manual installation, clone the project and enter the source directory:
+
+```bash
+git clone https://github.com/Thomascogez/babadeluxe-registry.git
+cd babadeluxe-registry
 ```
-:::info
-You can also clone the project using git command but degit allow you to only retrieve the necessary parts
-:::
 
-## 2. Install dependencies
-After cloning the project you will need to install dependencies project using your favorite package manager 
+Alternatively, you may use `degit` to retrieve only the necessary components:
+```shell
+npx degit Thomascogez/babadeluxe-registry/apps/api
+```
+
+## 2. Installing Dependencies
+After cloning the source, install the project's dependencies using the `pnpm` manager:
 <PackageManagerTabs command="install" />
 
 :::info
-This project use `pnpm` as it dependencies manager
+This project utilizes `pnpm` as its primary dependency manager.
 :::
 
-## 3. Configure project
-In order to configure the project you will need to edit the `wrangler.toml` file
+## 3. Configuring the Nexus
+To configure your instance, you must edit the `wrangler.toml` file.
 
-### Configure your R2 bucket
-Go to your [Cloudflare Dashboard](https://dash.cloudflare.com/) and create a new **R2** bucket.
-Copy the name of your bucket and edit your `wrangler.toml` file 
+### Configuring R2 Storage
+Navigate to your [Cloudflare Dashboard](https://dash.cloudflare.com/) and create a new **R2** bucket.
+Inscribe the name of your bucket within your `wrangler.toml` file:
 
 ```toml title="wrangler.toml"
 [[r2_buckets]]
 binding = "BUCKET"
-bucket_name = "BUCKET_NAME" # Replace BUCKET_NAME with the value you have previously copied
+bucket_name = "YOUR_R2_BUCKET_NAME"
 ```
 
-### Configure your D1 database
-Go to your [Cloudflare Dashboard](https://dash.cloudflare.com/) and create a new **D1** database.
-Copy the id and the name of your d1 database
-
+### Configuring the D1 Database
+Create a new **D1** database through the Cloudflare Dashboard.
+Copy the ID and name of your database and inscribe them within `wrangler.toml`:
 
 ```toml title="wrangler.toml"
 [[d1_databases]]
 binding = "DB"
-database_name = "D1_DATABASE_NAME" # Replace D1_DATABASE_NAME with the value you have previously copied
-database_id = "D1_DATABASE_ID" # Replace D1_DATABASE_ID with the value you have previously copied
+database_name = "YOUR_D1_DATABASE_NAME"
+database_id = "YOUR_D1_DATABASE_ID"
 ```
-## 4. Deploy your npflared worker
-Once everything is set-up you can deploy your worker.
+
+## 4. Deploying the Babadeluxe Worker
+Once your configuration is complete, deploy the worker to the Cloudflare network:
 <PackageManagerTabs command="run deploy" />
 
-## 5. Run initial migrations
-Once your worker is deployed you have to run initial database migrations 
+## 5. Running Initial Migrations
+After deployment, execute the initial database migrations to prepare the environment:
 <PackageManagerTabs command="run migrate:prod" />
 
-## 6. Create your admin token 
-In order to distribute tokens for other users, you will need to create an initial token with elevated privileges
+## 6. Creating the Admin Token
+To manage your domain and distribute tokens, you must create an initial administrative token with elevated privileges.
 
-:::info
-You can generate any kind of random values
-:::
+Run the following command, replacing `ADMIN_TOKEN` with your chosen secret:
 
-Run the following command after replacing `ADMIN_TOKEN` with your desired token
 ```bash
 npx wrangler d1 execute DB --remote --yes --command "INSERT INTO token (token, name, scopes, created_at, updated_at) VALUES ('ADMIN_TOKEN', 'admin-token', '[{\"type\": \"token:read+write\", \"values\": [\"*\"]}, {\"type\": \"user:read+write\", \"values\": [\"*\"]}, {\"type\": \"package:read+write\", \"values\": [\"*\"]}]', 1734173399, 1734173399)"
 ```
 
-And we are done 🎉
-
-
-
-
+With these steps, you have achieved a manual state of transcendence. 🎉

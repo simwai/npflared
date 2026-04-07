@@ -3,20 +3,6 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import packagePublishPayload from "../mocks/package-publish-payload.json";
 import { createToken } from "../utils";
 
-const leafTarballName = (fullName: string, version: string) => {
-	if (!fullName.startsWith("@")) return `${fullName}-${version}.tgz`;
-	const leaf = fullName.split("/").pop() ?? fullName;
-	return `${leaf}-${version}.tgz`;
-};
-
-const attachmentName = (fullName: string, version: string) => {
-	if (!fullName.startsWith("@")) return `${fullName}-${version}.tgz`;
-	return `${fullName.slice(1).replace("/", "-")}-${version}.tgz`;
-};
-
-const tarballUrl = (fullName: string, version: string) =>
-	`http://localhost:8787/${fullName}/-/${leafTarballName(fullName, version)}`;
-
 describe("Permission Matrix", () => {
 	beforeAll(() => {
 		fetchMock.activate();
@@ -95,12 +81,12 @@ describe("Permission Matrix", () => {
 									name: fullName,
 									dist: {
 										...packagePublishPayload.versions["1.0.0"].dist,
-										tarball: tarballUrl(fullName, "1.0.0")
+										tarball: `http://localhost:8787/${fullName}/-/${fullName.replace("/", "-")}-1.0.0.tgz`
 									}
 								}
 							},
 							_attachments: {
-								[attachmentName(fullName, "1.0.0")]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
+								[`${fullName.replace("/", "-")}-1.0.0.tgz`]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
 							}
 						};
 
@@ -128,15 +114,16 @@ describe("Permission Matrix", () => {
 												...packagePublishPayload.versions["1.0.0"],
 												_id: `${fullName}@${version}`,
 												name: fullName,
-												version,
+												version: version,
 												dist: {
 													...packagePublishPayload.versions["1.0.0"].dist,
-													tarball: tarballUrl(fullName, version)
+													tarball: `http://localhost:8787/${fullName}/-/${fullName.replace("/", "-")}-${version}.tgz`
 												}
 											}
 										},
 										_attachments: {
-											[attachmentName(fullName, version)]: packagePublishPayload._attachments["mock-1.0.0.tgz"]
+											[`${fullName.replace("/", "-")}-${version}.tgz`]:
+												packagePublishPayload._attachments["mock-1.0.0.tgz"]
 										}
 									})
 								: undefined

@@ -198,7 +198,7 @@ describe("package routes", () => {
 							...packagePublishPayload.versions["1.0.0"],
 							dist: {
 								...packagePublishPayload.versions["1.0.0"].dist,
-								tarball: "http://localhost:8787/@scoped/pkg-tarball/-/scoped-pkg-tarball-1.0.0.tgz"
+								tarball: "http://localhost:8787/@scoped/pkg-tarball/-/pkg-tarball-1.0.0.tgz"
 							}
 						}
 					}

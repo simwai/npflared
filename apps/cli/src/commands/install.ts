@@ -22,14 +22,14 @@ import {
 import { cliContext } from "../utils/context";
 import { pathExists } from "../utils/fs";
 
-const npflaredDirName = ".npflared";
-const npflaredDirPath = join(homedir(), npflaredDirName);
+const babadeluxeRegistryDirName = ".babadeluxe-registry";
+const babadeluxeRegistryDirPath = join(homedir(), babadeluxeRegistryDirName);
 
 const cliSpinner = spinner();
 
-const ensureNpflaredDirExists = async () => {
+const ensureBabadeluxeRegistryDirExists = async () => {
 	try {
-		await mkdir(npflaredDirPath, { recursive: true });
+		await mkdir(babadeluxeRegistryDirPath, { recursive: true });
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException)?.code !== "EEXIST") {
 			throw error;
@@ -65,7 +65,7 @@ const promptD1Database = async (): Promise<{ name: string; id: string }> => {
 	}
 
 	const d1DatabaseName = await text({
-		initialValue: "npflared",
+		initialValue: "babadeluxe-registry",
 		message: "Enter a name for your D1 database:",
 		validate(value) {
 			const v = value ?? "";
@@ -122,7 +122,7 @@ const promptR2Bucket = async (): Promise<{ name: string }> => {
 	}
 
 	const r2BucketName = await text({
-		initialValue: "npflared",
+		initialValue: "babadeluxe-registry",
 		message: "Enter a name for your R2 bucket:",
 		validate(value) {
 			const v = value ?? "";
@@ -169,7 +169,7 @@ const promptPackageManager = async (): Promise<string> => {
 
 const promptWorkerName = async (): Promise<string> => {
 	const workerName = await text({
-		initialValue: "npflared",
+		initialValue: "babadeluxe-registry",
 		message: "Enter a name for your worker:",
 		validate(value) {
 			const v = value ?? "";
@@ -215,7 +215,7 @@ const generateAdminToken = async (basePath: string) => {
 };
 
 export const install = async () => {
-	const cloneTmpDir = await mkdtemp(join(tmpdir(), "npflared-"));
+	const cloneTmpDir = await mkdtemp(join(tmpdir(), "babadeluxe-registry-"));
 
 	const cleanup = () => {
 		if (cloneTmpDir) {
@@ -228,25 +228,25 @@ export const install = async () => {
 	process.on("SIGTERM", cleanup);
 
 	try {
-		intro("npflared");
+		intro("babadeluxe-registry");
 
-		const repository = degit("Thomascogez/npflared/apps/api");
+		const repository = degit("Thomascogez/babadeluxe-registry/apps/api");
 
-		cliSpinner.start("Cloning npflared...");
+		cliSpinner.start("Cloning babadeluxe-registry...");
 		await repository.clone(cloneTmpDir);
 
 		const packageJsonPath = join(cloneTmpDir, "package.json");
 		const packageJson = JSON.parse(await readFile(packageJsonPath, "utf-8"));
-		const npflaredVersion = packageJson.version as string;
+		const babadeluxeRegistryVersion = packageJson.version as string;
 
-		await ensureNpflaredDirExists();
-		const npflaredCurrentVersionDirectory = join(npflaredDirPath, npflaredVersion);
+		await ensureBabadeluxeRegistryDirExists();
+		const babadeluxeRegistryCurrentVersionDirectory = join(babadeluxeRegistryDirPath, babadeluxeRegistryVersion);
 
-		const localVersionExists = await pathExists(npflaredCurrentVersionDirectory);
+		const localVersionExists = await pathExists(babadeluxeRegistryCurrentVersionDirectory);
 		if (!localVersionExists) {
-			await rename(cloneTmpDir, join(npflaredDirPath, npflaredVersion));
+			await rename(cloneTmpDir, join(babadeluxeRegistryDirPath, babadeluxeRegistryVersion));
 		}
-		cliSpinner.stop(`Successfully cloned npflared (v${npflaredVersion})`);
+		cliSpinner.stop(`Successfully cloned babadeluxe-registry (v${babadeluxeRegistryVersion})`);
 
 		const workerName = await promptWorkerName();
 
@@ -256,7 +256,7 @@ export const install = async () => {
 			const installCommand = getCommand(packageManager, "install");
 			await $({
 				quiet: true,
-				cwd: npflaredCurrentVersionDirectory
+				cwd: babadeluxeRegistryCurrentVersionDirectory
 			})`${installCommand.command} ${installCommand.args.join(" ")}`;
 			cliSpinner.stop(`Successfully installed dependencies using ${packageManager}`);
 
@@ -286,27 +286,27 @@ export const install = async () => {
 				d1_databases: [{ binding: "DB", database_name: d1Database.name, database_id: d1Database.id }],
 				r2_buckets: [{ binding: "BUCKET", bucket_name: r2Bucket.name }]
 			};
-			const wranglerConfigFilePath = join(npflaredCurrentVersionDirectory, "wrangler.json");
+			const wranglerConfigFilePath = join(babadeluxeRegistryCurrentVersionDirectory, "wrangler.json");
 
 			await writeFile(wranglerConfigFilePath, JSON.stringify(wranglerConfig, null, 2));
 			cliSpinner.stop(`Wrangler configuration generated at ${wranglerConfigFilePath}`);
 
-			const adminToken = await generateAdminToken(npflaredCurrentVersionDirectory);
+			const adminToken = await generateAdminToken(babadeluxeRegistryCurrentVersionDirectory);
 
 			cliSpinner.start("Applying D1 migrations...");
-			await applyD1Migrations(d1Database.name, { cwd: npflaredCurrentVersionDirectory });
+			await applyD1Migrations(d1Database.name, { cwd: babadeluxeRegistryCurrentVersionDirectory });
 			cliSpinner.stop("Successfully applied D1 migrations");
 
 			cliSpinner.start("Deploying...");
-			const deployedUrl = await deploy({ cwd: npflaredCurrentVersionDirectory });
+			const deployedUrl = await deploy({ cwd: babadeluxeRegistryCurrentVersionDirectory });
 			cliSpinner.stop();
 			log.info(
 				chalk.green(
 					dedent`
-          🔥 npflared is now ready to use!
+          🔥 babadeluxe-registry is now ready to use!
           🔗 Deployed to: ${chalk.bold.white(deployedUrl)}
           👮 Admin token: ${chalk.bold.white(adminToken)}
-          📚 Check documentation for more information: ${chalk.bold.white("https://npflared.thomas-cogez.fr")}
+          📚 Check documentation for more information: ${chalk.bold.white("https://babadeluxe-registry.thomas-cogez.fr")}
         `
 				)
 			);

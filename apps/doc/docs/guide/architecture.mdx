@@ -1,0 +1,49 @@
+# The BabaDeluxe Registry Architecture
+
+BabaDeluxe Registry is a manifestation of distributed, serverless infrastructure. At **BabaDeluxe**, we've architected this node on the Cloudflare edge, where compute and storage are intertwined to provide a low-cost, high-performance registry for our shared libraries.
+
+## The Cognitive Node (System Overview)
+
+The architecture is composed of several synergistic components:
+
+- **Cloudflare Worker**: The brain of the node, processing incoming signals (HTTP requests) and orchestrating the storage.
+- **D1 Database**: The memory of the node, storing package metadata, versions, and token configurations.
+- **R2 Storage**: The physical storage for the binary artifacts (tarballs) of our packages.
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#a855f7', 'primaryTextColor': '#fff', 'primaryBorderColor': '#7c3aed', 'lineColor': '#8b5cf6', 'secondaryColor': '#7c3aed', 'tertiaryColor': '#581c87' }}}%%
+graph TD
+    User([User / NPM Client]) --> Worker(Cloudflare Worker)
+    Worker --> D1[(D1 Database: Metadata & Tokens)]
+    Worker --> R2[(R2 Storage: Package Tarballs)]
+    Worker -.-> Fallback(External NPM Registry)
+```
+
+## The Publication Event (Sequence Diagram)
+
+When we manifest a library into the registry, a series of interactions occur. The following sequence diagram illustrates the flow of this publication event:
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#a855f7', 'primaryTextColor': '#fff', 'primaryBorderColor': '#7c3aed', 'lineColor': '#8b5cf6', 'secondaryColor': '#7c3aed', 'tertiaryColor': '#581c87' }}}%%
+sequenceDiagram
+    participant Client as NPM Client
+    participant Worker as Registry Worker
+    participant D1 as D1 Database
+    participant R2 as R2 Storage
+
+    Client->>Worker: PUT /package (Package Metadata + Tarball)
+    Worker->>D1: Check Token & Package Existence
+    D1-->>Worker: Token Validated
+    Worker->>R2: Store Tarball Artifact
+    R2-->>Worker: Tarball Manifested
+    Worker->>D1: Update Package Metadata
+    D1-->>Worker: Metadata Persisted
+    Worker-->>Client: 200 OK (Package Manifested)
+```
+
+## The Signal Ingestion (Package Retrieval)
+
+When a client requests a package, the BabaDeluxe Registry node first checks its local D1 memory. If the package is not found, the node can proxy the request to an external registry, ensuring that our internal subnet is always connected to the global npm collective.
+
+- If the package is in the local D1, the Worker retrieves the tarball from R2.
+- If the package is not in the local D1, the Worker proxies the request to the configured `FALLBACK_REGISTRY_ENDPOINT`.

@@ -8,17 +8,6 @@ import { HttpError } from "#utils/http";
 import { zValidator } from "#utils/validation";
 import { validators } from "./validators";
 
-type DebugCapableContext = {
-	req: {
-		query: (key: string) => string | undefined;
-		header: (key: string) => string | undefined;
-	};
-};
-
-function isDebugRequest(c: DebugCapableContext) {
-	return Boolean(env.DEBUG_ERRORS) || c.req.query("debug") === "1" || c.req.header("x-npflared-debug") === "1";
-}
-
 export const packageRouter = $.createApp()
 	.get(
 		"/:packageName",
@@ -98,11 +87,10 @@ export const packageRouter = $.createApp()
 	.get("/:packageName/-/:tarballName", zValidator("param", validators.getTarball.request.param), async (c) => {
 		const { packageName, tarballName } = c.req.valid("param");
 		const can = assertTokenAccess(c.get("token"));
-		const debug = isDebugRequest(c);
 
 		if (!can("read", "package", packageName)) throw HttpError.forbidden();
 
-		const tarball = await packageService.getPackageTarball(packageName, tarballName, { debug });
+		const tarball = await packageService.getPackageTarball(packageName, tarballName);
 
 		return new Response(tarball.body, {
 			headers: { "Content-Type": "application/gzip" }
@@ -112,7 +100,6 @@ export const packageRouter = $.createApp()
 		const packageScope = c.req.param("packageScope");
 		const packageName = c.req.param("packageName");
 		const tarballPath = c.req.param("tarballPath");
-		const debug = isDebugRequest(c);
 
 		const fullName = `${packageScope}/${packageName}`;
 		const can = assertTokenAccess(c.get("token"));
@@ -123,7 +110,7 @@ export const packageRouter = $.createApp()
 
 		const tarballName = tarballPath.split("/").pop() ?? tarballPath;
 
-		const tarball = await packageService.getPackageTarball(fullName, tarballName, { debug });
+		const tarball = await packageService.getPackageTarball(fullName, tarballName);
 
 		return new Response(tarball.body, {
 			headers: { "Content-Type": "application/gzip" }
@@ -151,11 +138,10 @@ export const packageRouter = $.createApp()
 			const can = assertTokenAccess(c.get("token"));
 			const { packageName } = c.req.valid("param");
 			const body = c.req.valid("json");
-			const debug = isDebugRequest(c);
 
 			if (!can("write", "package", packageName)) throw HttpError.forbidden();
 
-			await packageService.putPackage(packageName, body, { debug });
+			await packageService.putPackage(packageName, body);
 
 			return c.json({ message: "ok" });
 		}
@@ -183,11 +169,10 @@ export const packageRouter = $.createApp()
 			const { packageScope, packageName } = c.req.valid("param");
 			const fullName = `${packageScope}/${packageName}`;
 			const body = c.req.valid("json");
-			const debug = isDebugRequest(c);
 
 			if (!can("write", "package", fullName)) throw HttpError.forbidden();
 
-			await packageService.putPackage(fullName, body, { debug });
+			await packageService.putPackage(fullName, body);
 
 			return c.json({ message: "ok" });
 		}
