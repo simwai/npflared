@@ -1,6 +1,6 @@
-# The Babadeluxe Registry Architecture
+# The BabaDeluxe Registry Architecture
 
-Babadeluxe Registry is a manifestation of distributed, serverless infrastructure. At **BabaDeluxe**, we've architected this node on the Cloudflare edge, where compute and storage are intertwined to provide a low-cost, high-performance registry for our shared libraries.
+BabaDeluxe Registry is a manifestation of distributed, serverless infrastructure. At **BabaDeluxe**, we've architected this node on the Cloudflare edge, where compute and storage are intertwined to provide a low-cost, high-performance registry for our shared libraries.
 
 ## The Cognitive Node (System Overview)
 
@@ -43,7 +43,7 @@ sequenceDiagram
 
 ## The Signal Ingestion (Package Retrieval)
 
-When a client requests a package, the Babadeluxe Registry node first checks its local D1 memory. If the package is not found, the node can proxy the request to an external registry, ensuring that our internal subnet is always connected to the global npm collective.
+When a client requests a package, the BabaDeluxe Registry node first checks its local D1 memory. If the package is not found, the node can proxy the request to an external registry, ensuring that our internal subnet is always connected to the global npm collective.
 
 - If the package is in the local D1, the Worker retrieves the tarball from R2.
 - If the package is not in the local D1, the Worker proxies the request to the configured `FALLBACK_REGISTRY_ENDPOINT`.

@@ -1,6 +1,6 @@
-# What is Babadeluxe Registry?
+# What is BabaDeluxe Registry?
 
-Babadeluxe Registry is a lightweight, serverless private npm registry that we use at **BabaDeluxe** to deploy and share all our libraries and common code. Built on the [Npflared](https://github.com/thomas-cogez/npflared) substrate, it is architected to be a high-performance, low-cost node in our development ecosystem.
+BabaDeluxe Registry is a lightweight, serverless private npm registry that we use at **BabaDeluxe** to deploy and share all our libraries and common code. Built on the [Npflared](https://github.com/thomas-cogez/npflared) substrate, it is architected to be a high-performance, low-cost node in our development ecosystem.
 
 By leveraging Cloudflare Workers, D1, and R2, we have manifested a registry that allows us to manage package access across our teams without the overhead of traditional npm hosting.
 
@@ -8,9 +8,9 @@ By leveraging Cloudflare Workers, D1, and R2, we have manifested a registry that
 A big contribution and credit to [Thomas Cogez](https://github.com/thomas-cogez), the original creator of Npflared, upon which this registry is founded.
 :::
 
-## Why Babadeluxe Registry?
+## Why BabaDeluxe Registry?
 
-If you seek a frictionless, low-cost way to distribute npm packages within your own team's cognitive network, Babadeluxe Registry provides the substrate for this exchange.
+If you seek a frictionless, low-cost way to distribute npm packages within your own team's cognitive network, BabaDeluxe Registry provides the substrate for this exchange.
 
 We are not looking to replace the global registry, but rather to complement it with private, serverless nodes that offer maximum agency and minimum marginal cost for our teams.
 
