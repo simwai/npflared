@@ -1,11 +1,21 @@
 import micromatch from "micromatch";
 import type { tokenTable } from "#db/schema";
 
+function normalizeValue(value: string) {
+	try {
+		return decodeURIComponent(value);
+	} catch {
+		return value;
+	}
+}
+
 export const assertTokenAccess = (token: typeof tokenTable.$inferSelect | undefined) => {
 	return (operation: "read" | "write", entity: "user" | "package" | "token", targetedPackage: string) => {
 		if (!token) {
 			return false;
 		}
+
+		const normalizedTargetedPackage = normalizeValue(targetedPackage);
 
 		const targetedScopesValue = (token.scopes ?? [])
 			.filter(({ type }) => {
@@ -18,13 +28,13 @@ export const assertTokenAccess = (token: typeof tokenTable.$inferSelect | undefi
 
 				return type.startsWith(`${entity}:`) && type.includes(operation);
 			})
-			.flatMap(({ values }) => values);
+			.flatMap(({ values }) => values.map(normalizeValue));
 
 		return targetedScopesValue.some(
 			(value) =>
 				value === "*" ||
-				value === targetedPackage ||
-				micromatch.isMatch(targetedPackage, value, { dot: true, bash: true })
+				value === normalizedTargetedPackage ||
+				micromatch.isMatch(normalizedTargetedPackage, value, { dot: true, bash: true })
 		);
 	};
 };
