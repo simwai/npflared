@@ -1,26 +1,26 @@
-import { db } from "#db/index";
-import { $ } from "#utils/factory";
+import { db } from '#db/index'
+import { $ } from '#utils/factory'
 
 export const loadToken = $.createMiddleware(async (c, next) => {
-  const authorizationHeader = c.req.header("Authorization");
+  const authorizationHeader = c.req.header('Authorization')
 
   if (!authorizationHeader) {
-    return await next();
+    return await next()
   }
 
-  const [, token] = authorizationHeader.split(" ");
+  const [, token] = authorizationHeader.split(' ')
 
   if (!token) {
-    return await next();
+    return await next()
   }
 
   const targetedToken = await db.query.tokenTable.findFirst({
-    where: (table, { eq }) => eq(table.token, token)
-  });
+    where: (table, { eq }) => eq(table.token, token),
+  })
 
   if (targetedToken) {
-    c.set("token", targetedToken);
+    c.set('token', targetedToken)
   }
 
-  await next();
-});
+  await next()
+})

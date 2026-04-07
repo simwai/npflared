@@ -1,71 +1,71 @@
-import semver from "semver";
-import { z } from "zod";
+import semver from 'semver'
+import { z } from 'zod'
 
 function isValidNpmSemver(value: string): boolean {
   try {
-    const isValidSemver = semver.clean(value, { loose: true }) !== null;
-    return isValidSemver;
+    const isValidSemver = semver.clean(value, { loose: true }) !== null
+    return isValidSemver
   } catch {
-    return false;
+    return false
   }
 }
 
 const packageSchema = z.object({
   _id: z.string(),
   name: z.string(),
-  "dist-tags": z.record(z.string(), z.string()),
-  versions: z.record(z.string(), z.any())
-});
+  'dist-tags': z.record(z.string(), z.string()),
+  versions: z.record(z.string(), z.any()),
+})
 
 const npmSemver = z
   .string()
-  .refine((value) => isValidNpmSemver(value), { message: "Version is not in a vlid npm-style semv" });
+  .refine((value) => isValidNpmSemver(value), { message: 'Version is not in a vlid npm-style semv' })
 
 export const validators = {
   get: {
     request: {
       param: z.object({
-        packageName: z.string().nonempty()
-      })
+        packageName: z.string().nonempty(),
+      }),
     },
     scoped: {
       request: {
         param: z.object({
           packageScope: z.string().nonempty(),
-          packageName: z.string().nonempty()
-        })
-      }
+          packageName: z.string().nonempty(),
+        }),
+      },
     },
     response: {
-      200: packageSchema
-    }
+      200: packageSchema,
+    },
   },
   getTarball: {
     request: {
       param: z.object({
         packageName: z.string().nonempty(),
-        tarballName: z.string().nonempty()
-      })
+        tarballName: z.string().nonempty(),
+      }),
     },
     scope: {
       request: {
         param: z.object({
           packageScope: z.string().nonempty(),
           packageName: z.string().nonempty(),
-          tarballName: z.string().nonempty()
-        })
-      }
-    }
+          tarballName: z.string().nonempty(),
+        }),
+      },
+    },
   },
   put: {
     request: {
       param: z.object({
-        packageName: z.string().nonempty()
+        packageName: z.string().nonempty(),
       }),
       json: z.object({
         _id: z.string().min(1),
         name: z.string().min(1),
-        "dist-tags": z.record(z.string(), z.string()),
+        'dist-tags': z.record(z.string(), z.string()),
         versions: z.record(
           npmSemver,
           z.object({
@@ -82,8 +82,8 @@ export const validators = {
             dist: z.object({
               integrity: z.string(),
               shasum: z.string(),
-              tarball: z.string()
-            })
+              tarball: z.string(),
+            }),
           })
         ),
         _attachments: z.record(
@@ -91,21 +91,21 @@ export const validators = {
           z.object({
             content_type: z.string(),
             data: z.string(),
-            length: z.number()
+            length: z.number(),
           })
-        )
-      })
+        ),
+      }),
     },
     scoped: {
       request: {
         param: z.object({
           packageScope: z.string().nonempty(),
-          packageName: z.string().nonempty()
-        })
-      }
+          packageName: z.string().nonempty(),
+        }),
+      },
     },
     response: {
-      200: z.object({ message: z.string() })
-    }
-  }
-};
+      200: z.object({ message: z.string() }),
+    },
+  },
+}

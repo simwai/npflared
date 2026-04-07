@@ -64,10 +64,11 @@
       "arrowParentheses": "always",
       "bracketSameLine": false,
       "bracketSpacing": true,
-      "jsxQuoteStyle": "double",
+      "jsxQuoteStyle": "single",
+      "quoteStyle": "single",
       "quoteProperties": "asNeeded",
-      "semicolons": "always",
-      "trailingCommas": "none"
+      "semicolons": "asNeeded",
+      "trailingCommas": "es5"
     }
   },
   "overrides": [

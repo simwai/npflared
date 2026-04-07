@@ -1,10 +1,10 @@
-import { defineConfig } from "tsdown/config";
+import { defineConfig } from 'tsdown/config'
 
 export default defineConfig({
   clean: true,
-  entry: ["src/index.ts"],
-  format: ["esm"],
+  entry: ['src/index.ts'],
+  format: ['esm'],
   minify: true,
-  target: "esnext",
-  outDir: "dist"
-});
+  target: 'esnext',
+  outDir: 'dist',
+})
