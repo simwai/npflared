@@ -160,35 +160,3 @@ export const packageRouter = $.createApp()
 			return c.json({ message: "ok" });
 		}
 	)
-	.put(
-		"/:packageScope/:packageName",
-		describeRoute({
-			description: "Publish a new version of a scoped package",
-			responses: {
-				...standardOpenApiErrorResponses,
-				200: {
-					description: "Package updated",
-					content: {
-						"application/json": {
-							schema: resolver(validators.put.response[200])
-						}
-					}
-				}
-			}
-		}),
-		zValidator("param", validators.put.scoped.request.param),
-		zValidator("json", validators.put.request.json),
-		async (c) => {
-			const can = assertTokenAccess(c.get("token"));
-			const { packageScope, packageName } = c.req.valid("param");
-			const fullName = `${packageScope}/${packageName}`;
-			const body = c.req.valid("json");
-			const debug = isDebugRequest(c);
-
-			if (!can("write", "package", fullName)) throw HttpError.forbidden();
-
-			await packageService.putPackage(fullName, body, { debug });
-
-			return c.json({ message: "ok" });
-		}
-	);
