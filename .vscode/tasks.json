@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "API dev",
+      "label": "API dev 8787",
       "type": "shell",
-      "command": "pnpx wrangler dev ./src/index.ts --local --port=8788 --inspector-port=9229",
+      "command": "pnpm exec wrangler dev ./src/index.ts --local --port=8787 --inspector-port=9229",
       "options": {
         "cwd": "${workspaceFolder}/apps/api"
       },
@@ -17,23 +17,44 @@
       "problemMatcher": {
         "owner": "wrangler",
         "pattern": {
-          "regexp": "^$"
+          "regexp": "^.*$"
         },
         "background": {
           "activeOnStart": true,
-          "beginsPattern": {
-            "regexp": "Starting local server"
-          },
-          "endsPattern": {
-            "regexp": "Ready on"
-          }
+          "beginsPattern": ".*(Starting local server|Proxy environment variables detected).*",
+          "endsPattern": ".*Ready on.*"
         }
       }
     },
     {
-      "label": "CLI test",
+      "label": "API dev 8788",
       "type": "shell",
-      "command": "pnpx tsx ./src/index.ts test --local --port 8788",
+      "command": "pnpm exec wrangler dev ./src/index.ts --local --port=8788 --inspector-port=9230",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/api"
+      },
+      "presentation": {
+        "group": "dev",
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "wrangler",
+        "pattern": {
+          "regexp": "^.*$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*(Starting local server|Proxy environment variables detected).*",
+          "endsPattern": ".*Ready on.*"
+        }
+      }
+    },
+    {
+      "label": "CLI test 8788",
+      "type": "shell",
+      "command": "pnpm exec tsx ./src/index.ts test --local --port 8788",
       "options": {
         "cwd": "${workspaceFolder}/apps/cli"
       },
@@ -42,7 +63,7 @@
         "panel": "shared",
         "reveal": "always"
       },
-      "dependsOn": "API dev",
+      "dependsOn": "API dev 8788",
       "dependsOrder": "sequence"
     }
   ]

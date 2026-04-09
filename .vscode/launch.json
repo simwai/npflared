@@ -1,29 +1,80 @@
-// .vscode/launch.json
 {
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Attach to node process",
+      "name": "API attach 8787",
       "type": "node",
       "request": "attach",
-      "port": 9229,
       "address": "127.0.0.1",
+      "port": 9229,
+      "preLaunchTask": "API dev 8787",
       "skipFiles": [
         "<node_internals>/**",
         "**/node_modules/**"
       ],
-      "sourceMaps": true
+      "sourceMaps": true,
+      "resolveSourceMapLocations": null,
+      "attachExistingChildren": false,
+      "autoAttachChildProcesses": false
+    },
+    {
+      "name": "API attach 8788",
+      "type": "node",
+      "request": "attach",
+      "address": "127.0.0.1",
+      "port": 9230,
+      "preLaunchTask": "API dev 8788",
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": null,
+      "attachExistingChildren": false,
+      "autoAttachChildProcesses": false
+    },
+    {
+      "name": "CLI test --local (port 8787)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--import",
+        "tsx",
+        "--inspect"
+      ],
+      "args": [
+        "./src/index.ts",
+        "test",
+        "--local",
+        "--port",
+        "8787"
+      ],
+      "cwd": "${workspaceFolder}/apps/cli",
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": null,
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "autoAttachChildProcesses": true
     },
     {
       "name": "CLI test --local (port 8788)",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "pnpx",
+      "runtimeExecutable": "node",
       "runtimeArgs": [
-        "tsx"
+        "--import",
+        "tsx",
+        "--inspect"
       ],
-      "program": "./src/index.ts",
       "args": [
+        "./src/index.ts",
         "test",
         "--local",
         "--port",
@@ -36,19 +87,29 @@
         "**/node_modules/**"
       ],
       "sourceMaps": true,
+      "resolveSourceMapLocations": null,
       "env": {
         "NODE_ENV": "development"
-      }
+      },
+      "autoAttachChildProcesses": true
     }
   ],
   "compounds": [
     {
-      "name": "Debug both",
+      "name": "Debug both 8788",
       "configurations": [
-        "CLI test --local (port 8788)",
-        "Attach to node process"
+        "API attach 8788",
+        "CLI test --local (port 8788)"
       ],
-      "preLaunchTask": "API dev"
+      "stopAll": true
+    },
+    {
+      "name": "Debug both 8787",
+      "configurations": [
+        "API attach 8787",
+        "CLI test --local (port 8787)"
+      ],
+      "stopAll": true
     }
   ]
 }
